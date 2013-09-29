@@ -1,0 +1,5 @@
+gerenate the password
+http://www.sha1-online.com/
+input: username:domain:password  and select md5
+example: admin:AirWeb:admin
+output: 0ac6d1e551d59dc9c1cc75e19e6ed3d8
