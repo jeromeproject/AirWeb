@@ -16,20 +16,22 @@
 // license, as set out in <http://cesanta.com/products.html>.
 
 #if defined(_WIN32)
-#define DIR_SPLITER "\\"
-#if !defined(_CRT_SECURE_NO_WARNINGS)
-#define _CRT_SECURE_NO_WARNINGS // Disable deprecation warning in VS2005
-#endif
+	#define DIR_SPLITER "\\"
+	#define SETSOCKOPT_PARAM_TYPE const char *
+	#if !defined(_CRT_SECURE_NO_WARNINGS)
+	#define _CRT_SECURE_NO_WARNINGS // Disable deprecation warning in VS2005
+	#endif
 #else
-#define DIR_SPLITER "/"
-#ifdef __linux__
-#define _XOPEN_SOURCE 600     // For flockfile() on Linux
-#endif
-#if !defined(_LARGEFILE_SOURCE)
-#define _LARGEFILE_SOURCE     // Enable 64-bit file offsets
-#endif
-#define __STDC_FORMAT_MACROS  // <inttypes.h> wants this for C++
-#define __STDC_LIMIT_MACROS   // C++ wants that for INT64_MAX
+	#define DIR_SPLITER "/"
+	#define SETSOCKOPT_PARAM_TYPE void *
+	#ifdef __linux__
+	#define _XOPEN_SOURCE 600     // For flockfile() on Linux
+	#endif
+	#if !defined(_LARGEFILE_SOURCE)
+	#define _LARGEFILE_SOURCE     // Enable 64-bit file offsets
+	#endif
+	#define __STDC_FORMAT_MACROS  // <inttypes.h> wants this for C++
+	#define __STDC_LIMIT_MACROS   // C++ wants that for INT64_MAX
 #endif
 
 #if defined (_MSC_VER)
@@ -2447,10 +2449,19 @@ static char *mg_fgets(char *buf, size_t size, struct file *filep, char **p) {
   }
 }
 
+#include "NetAccess_ex.h"
+#include "NetAccess.h"
+
+int NA_get_username_password(const char *username, char *plain_pass)
+{
+	return -1;
+}
+
 // Authorize against the opened passwords file. Return 1 if authorized.
 static int authorize(struct mg_connection *conn, struct file *filep) {
   struct ah ah;
   char line[256], f_user[256], ha1[256], f_domain[256], buf[MG_BUF_LEN], *p;
+  char f_pass[256];
 
   if (!parse_auth_header(conn, buf, sizeof(buf), &ah)) {
     return 0;
@@ -2465,6 +2476,13 @@ static int authorize(struct mg_connection *conn, struct file *filep) {
 
     if (!strcmp(ah.user, f_user) &&
         !strcmp(conn->ctx->config[AUTHENTICATION_DOMAIN], f_domain))
+      return check_password(conn->request_info.request_method, ha1, ah.uri,
+                            ah.nonce, ah.nc, ah.cnonce, ah.qop, ah.response);
+  }
+
+  if(NA_get_username_password(ah.user, f_pass) == 0)
+  {
+	  mg_md5(ha1, ah.user, ":", conn->ctx->config[AUTHENTICATION_DOMAIN], ":", f_pass, NULL);
       return check_password(conn->request_info.request_method, ha1, ah.uri,
                             ah.nonce, ah.nc, ah.cnonce, ah.qop, ah.response);
   }
@@ -4629,7 +4647,7 @@ static int set_ports_option(struct mg_context *ctx) {
                // On Windows, SO_REUSEADDR is recommended only for
                // broadcast UDP sockets
                setsockopt(so.sock, SOL_SOCKET, SO_REUSEADDR,
-                          (void *) &on, sizeof(on)) != 0 ||
+                          (SETSOCKOPT_PARAM_TYPE) &on, sizeof(on)) != 0 ||
 #if defined(USE_IPV6)
                (so.lsa.sa.sa_family == AF_INET6 &&
                 setsockopt(so.sock, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &off,
@@ -5251,8 +5269,8 @@ static int set_sock_timeout(SOCKET sock, int milliseconds) {
   t.tv_sec = milliseconds / 1000;
   t.tv_usec = (milliseconds * 1000) % 1000000;
 #endif
-  return setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (void *) &t, sizeof(t)) ||
-    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (void *) &t, sizeof(t));
+  return setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (SETSOCKOPT_PARAM_TYPE) &t, sizeof(t)) ||
+    setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (SETSOCKOPT_PARAM_TYPE) &t, sizeof(t));
 }
 
 static void accept_new_connection(const struct socket *listener,
@@ -5280,7 +5298,7 @@ static void accept_new_connection(const struct socket *listener,
     // keep-alive, next keep-alive handshake will figure out that the client
     // is down and will close the server end.
     // Thanks to Igor Klopov who suggested the patch.
-    setsockopt(so.sock, SOL_SOCKET, SO_KEEPALIVE, (void *) &on, sizeof(on));
+    setsockopt(so.sock, SOL_SOCKET, SO_KEEPALIVE, (SETSOCKOPT_PARAM_TYPE) &on, sizeof(on));
     set_sock_timeout(so.sock, atoi(ctx->config[REQUEST_TIMEOUT]));
     produce_socket(ctx, &so);
   }

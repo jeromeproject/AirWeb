@@ -17,7 +17,7 @@ int main(void) {
   const char *options[] = {
     "listening_ports", "8080",
     "document_root", "C:\\html",
-    "authentication_domain", "airphone",
+    "authentication_domain", "AirWeb",
     "cgi_pattern", "**.cgi$|**.exe$",
     NULL
   };
