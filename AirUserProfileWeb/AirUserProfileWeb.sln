@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirUserProfileWeb", "AirUserProfileWeb\AirUserProfileWeb.vcxproj", "{766764B7-F3A8-4B04-9467-1CF11F494588}"
+	ProjectSection(ProjectDependencies) = postProject
+		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8} = {20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "User", "User\User.vcxproj", "{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{766764B7-F3A8-4B04-9467-1CF11F494588}.Debug|Win32.ActiveCfg = Debug|Win32
+		{766764B7-F3A8-4B04-9467-1CF11F494588}.Debug|Win32.Build.0 = Debug|Win32
+		{766764B7-F3A8-4B04-9467-1CF11F494588}.Release|Win32.ActiveCfg = Release|Win32
+		{766764B7-F3A8-4B04-9467-1CF11F494588}.Release|Win32.Build.0 = Release|Win32
+		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Debug|Win32.Build.0 = Debug|Win32
+		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Release|Win32.ActiveCfg = Release|Win32
+		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
