@@ -63,7 +63,7 @@ static char *get_var_from_qs(char *qs, const char *name)
 	return NULL;
 }
 
-char * strip_start_symbol(char *str, char c)
+static char * strip_start_symbol(char *str, char c)
 {
 	if(*str == c)
 	{
@@ -71,30 +71,8 @@ char * strip_start_symbol(char *str, char c)
 	}
 	return str;
 }
-/*
-PlainPassword=test
-UserPL=-1
-Nickname=
-StatusComment=
-FriendList=
-BlackList=
-ServerIndex=-1
-NodeIndex=-1
-*/
-struct user_info {
-	char PlainPassword[128];
-	int UserPL;
-	char Nickname[128];
-	char StatusComment[128];
-	char FriendList[14000];
-	char BlackList[14000];
-	int ServerIndex;
-	int NodeIndex;
-};
 
-#define MAX_PROFILE_LEN sizeof(struct user_info)
-
-bool get_user_info(struct user_info *ui, char *am_data)
+static bool get_user_info(struct user_info *ui, char *am_data)
 {
 	bool ret = sscanf(am_data, "PlainPassword%[^\n]\n"
 				"UserPL=%d\n"
@@ -129,9 +107,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	unsigned int handle;
 	C_PortableTime tmp_time = {0}, req_time = {0};
 	char remote_addr[300] = "ans.dynamas.com.tw:17862";
-	handle=NA_CreateObject(0);
 	char *env_user = getenv("LOGIN_USER");
-	char *env_passwd = getenv("LOGIN_PASSWORD");
 	char *env_group = getenv("LOGIN_GROUP");
 	char *env_qs = getenv("QUERY_STRING");
 	char *qs_Action = get_var_from_qs(env_qs, "Action");
@@ -152,7 +128,26 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 0;
 	}
 
+	if(!qs_Username)
+	{
+		printf("Content-Type: text/plain\n"
+			"\n"
+			"No action: no specified username\n"
+			"failed\n");
+		return 0;
+	}
+
+	if(strcasecmp(env_group, "doctor") == 0 && strcasecmp(env_user, qs_Username) != 0)
+	{
+		printf("Content-Type: text/plain\n"
+			"\n"
+			"Action failed: %s could only change its profile\n"
+			"failed\n", env_user);
+		return 0;
+	}
+
 #if 1
+	handle=NA_CreateObject(0);
 	ret = NA_Connect(handle, remote_addr, NULL );
 	if(ret == true)
 	{
@@ -162,7 +157,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			C_PortableTime last_login_time;
 			UDWord access, priv, ser_idx, node_idx;
 			int am_type;
-			UByte am_data[MAX_PROFILE_LEN] = {0};
+			UByte am_data[MAX_USER_PROFILE_LEN] = {0};
 			int am_data_len = sizeof(am_data);
 			int am_data_res_len;
 			printf("Content-Type: text/plain\n\n");
@@ -180,7 +175,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			C_PortableTime last_login_time;
 			UDWord access, priv, ser_idx, node_idx;
 			int am_type;
-			UByte am_data[MAX_PROFILE_LEN] = {0};
+			UByte am_data[MAX_USER_PROFILE_LEN] = {0};
 			int am_data_len = sizeof(am_data);
 			int am_data_res_len;
 			printf("Content-Type: text/plain\n"
@@ -205,7 +200,7 @@ int _tmain(int argc, _TCHAR* argv[])
 			C_PortableTime last_login_time;
 			UDWord access, priv, ser_idx, node_idx;
 			int am_type;
-			UByte am_data[MAX_PROFILE_LEN] = {0};
+			UByte am_data[MAX_USER_PROFILE_LEN] = {0};
 			int am_data_len = sizeof(am_data);
 			int am_data_res_len;
 			printf("Content-Type: text/plain\n"
@@ -213,7 +208,7 @@ int _tmain(int argc, _TCHAR* argv[])
 				"update user\n");
 			if(NA_CommunityQueryUser(handle, tmp_time, qs_Username, &access, &priv, &ser_idx, &node_idx, &last_login_time, &am_type, am_data, am_data_len, &am_data_res_len))
 			{
-				char profile[MAX_PROFILE_LEN];
+				char profile[MAX_USER_PROFILE_LEN];
 				struct user_info ui;
 				get_user_info(&ui, (char*)am_data);
 				int len = sprintf(profile, "PlainPassword=%s\n"

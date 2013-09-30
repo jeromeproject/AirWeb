@@ -172,3 +172,26 @@ enum AdvMessageType {
 #define NA_CommunityCreateUser(handle, req_time, username, password) NA_ExtendedCommand(handle, Ex_CommunityCreateUser, 0, 0, 0, req_time, username, password, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
 #define NA_CommunityDeleteUser(handle, req_time, username) NA_ExtendedCommand(handle, Ex_CommunityDeleteUser, 0, 0, 0, req_time, username, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
 #define NA_CommunityModifyUser(handle, req_time, username, profile, len_profile) NA_ExtendedCommand(handle, Ex_CommunityModifyUser, 0, 0, 0, req_time, username, profile, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
+/*
+PlainPassword=test
+UserPL=-1
+Nickname=
+StatusComment=
+FriendList=
+BlackList=
+ServerIndex=-1
+NodeIndex=-1
+*/
+struct user_info {
+	char PlainPassword[128];
+	int UserPL;
+	char Nickname[128];
+	char StatusComment[128];
+	char FriendList[14000];
+	char BlackList[14000];
+	int ServerIndex;
+	int NodeIndex;
+};
+
+#define MAX_USER_PROFILE_LEN sizeof(struct user_info)

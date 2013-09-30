@@ -523,6 +523,8 @@ struct mg_connection {
   int64_t num_bytes_sent;     // Total bytes sent to client
   int64_t content_len;        // Content-Length header value
   int64_t consumed_content;   // How many bytes of content have been read
+  char curr_username[128];
+  char curr_group[128];			// admin or doctor
   char *buf;                  // Buffer for received data
   char *path_info;            // PATH_INFO part of the URL
   int must_close;             // 1 if connection must be closed
@@ -2452,9 +2454,72 @@ static char *mg_fgets(char *buf, size_t size, struct file *filep, char **p) {
 #include "NetAccess_ex.h"
 #include "NetAccess.h"
 
-int NA_get_username_password(const char *username, char *plain_pass)
+static char * strip_start_symbol(char *str, char c)
 {
-	return -1;
+	if(*str == c)
+	{
+		strcpy(str, str+1);
+	}
+	return str;
+}
+
+static bool get_user_info(struct user_info *ui, char *am_data)
+{
+	bool ret = sscanf(am_data, "PlainPassword%[^\n]\n"
+				"UserPL=%d\n"
+				"Nickname%[^\n]\n"
+				"StatusComment%[^\n]\n"
+				"FriendList%[^\n]\n"
+				"BlackList%[^\n]\n"
+				"ServerIndex=%d\n"
+				"NodeIndex=%d\n",
+				ui->PlainPassword,
+				&ui->UserPL,
+				ui->Nickname,
+				ui->StatusComment,
+				ui->FriendList,
+				ui->BlackList,
+				&ui->ServerIndex,
+				&ui->NodeIndex) == 8 ? true : false;
+	if(ret)
+	{
+		strip_start_symbol(ui->PlainPassword, '=');
+		strip_start_symbol(ui->Nickname, '=');
+		strip_start_symbol(ui->StatusComment, '=');
+		strip_start_symbol(ui->FriendList, '=');
+		strip_start_symbol(ui->BlackList, '=');
+	}
+	return ret;
+}
+
+static int NA_get_username_password(const char *username, char *plain_pass)
+{
+	C_PortableTime last_login_time = {0}, tmp_time = {0};
+	UDWord access, priv, ser_idx, node_idx;
+	int am_type;
+	UByte am_data[MAX_USER_PROFILE_LEN] = {0};
+	int am_data_len = sizeof(am_data);
+	int am_data_res_len;
+	int ret = -1;
+	unsigned int handle;
+	char remote_addr[300] = "ans.dynamas.com.tw:17862";
+
+	handle=NA_CreateObject(0);
+	if(NA_Connect(handle, remote_addr, NULL))
+	{
+		if(NA_CommunityQueryUser(handle, tmp_time, username, &access, &priv, &ser_idx, &node_idx, &last_login_time, &am_type, am_data, am_data_len, &am_data_res_len))
+		{
+			struct user_info ui;
+			get_user_info(&ui, (char*)am_data);
+			strcpy(plain_pass, ui.PlainPassword);
+			ret = 0;
+		      DEBUG_TRACE(("%s", (char*)am_data));
+		}
+		NA_Disconnect(handle);
+	}
+	NA_DestroyObject(handle);
+
+	return ret;
 }
 
 // Authorize against the opened passwords file. Return 1 if authorized.
@@ -2466,6 +2531,9 @@ static int authorize(struct mg_connection *conn, struct file *filep) {
   if (!parse_auth_header(conn, buf, sizeof(buf), &ah)) {
     return 0;
   }
+
+  strcpy(conn->curr_username, ah.user);
+  strcpy(conn->curr_group, "admin");	//default is administrator
 
   // Loop over passwords file
   p = (char *) filep->membuf;
@@ -2482,11 +2550,14 @@ static int authorize(struct mg_connection *conn, struct file *filep) {
 
   if(NA_get_username_password(ah.user, f_pass) == 0)
   {
+      DEBUG_TRACE(("auth (%s, %s)", ah.user, f_pass));
+	  strcpy(conn->curr_group, "doctor");
 	  mg_md5(ha1, ah.user, ":", conn->ctx->config[AUTHENTICATION_DOMAIN], ":", f_pass, NULL);
       return check_password(conn->request_info.request_method, ha1, ah.uri,
                             ah.nonce, ah.nc, ah.cnonce, ah.qop, ah.response);
   }
 
+  DEBUG_TRACE(("no found user %s", ah.user));
   return 0;
 }
 
@@ -3347,6 +3418,8 @@ static void prepare_cgi_environment(struct mg_connection *conn,
   addenv(blk, "SCRIPT_FILENAME=%s", prog);
   addenv(blk, "PATH_TRANSLATED=%s", prog);
   addenv(blk, "HTTPS=%s", conn->ssl == NULL ? "off" : "on");
+  addenv(blk, "LOGIN_USER=%s", conn->curr_username);
+  addenv(blk, "LOGIN_GROUP=%s", conn->curr_group);
 
   if ((s = mg_get_header(conn, "Content-Type")) != NULL)
     addenv(blk, "CONTENT_TYPE=%s", s);
