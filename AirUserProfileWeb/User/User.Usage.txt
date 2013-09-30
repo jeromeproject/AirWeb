@@ -1,0 +1,18 @@
+取得person的帳號資訊 (原始RAW資料)
+http://127.0.0.1:8080/User.exe?action=get&username=person
+
+新增醫生person的帳號,且密碼是1234資訊
+http://127.0.0.1:8080/User.exe?action=add&username=person&PlainPassword=1234
+
+刪除醫生person的帳號
+http://127.0.0.1:8080/User.exe?action=del&username=person
+
+更新醫生person的帳號,
+http://127.0.0.1:8080/User.exe?action=update&username=person&PlainPassword=person&Nickname=p&FriendList=1234 5678
+可以修改的參數
+PlainPassword
+UserPL
+Nickname
+StatusComment
+FriendList
+BlackList
