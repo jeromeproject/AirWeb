@@ -127,6 +127,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			"failed\n", env_qs);
 		return 0;
 	}
+	else if(strcasecmp(qs_Action, "info") == 0)
+	{
+		printf("Content-Type: text/plain\n"
+			"\n"
+			"LoginUser=%s\nGroup=%s\n", env_user, env_group);
+		return 0;
+	}
 
 	if(!qs_Username)
 	{

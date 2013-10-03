@@ -2,21 +2,39 @@
 	<HEAD>
 		<TITLE>AirWeb Profile Editor</TITLE>
 		<script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
-		<script type="text/javascript" src="js/profile_editor.js"></script>
+		<script type="text/javascript" src="js/user_profile.js"></script>
 		<script type="text/javascript">
 			$(document).ready(function()
 			{
+				ajax_get_login_info(null, "LoginUser", "Group");
 			});
 			function destroy() {}
+			function modify()
+			{
+				$('#content').attr('src', 'UserProfileEditor.html?username=' + $('#LoginUser').text());
+			}
 		</script>
 	</HEAD>
 	<BODY onunload="destroy()">
-		<table>
-			<tr>
-				<td>
-				<div id=msg name=msg></div>
-				</td>
-			</tr>
-		</table>
-	</BODY>
-</HTML>
+	<table border=1 width=100% height=100%>
+		<tr>
+			<td width=120>
+				User:<div id=LoginUser></div><br>
+				Group:<div id=Group></div><br>
+				<input value="Apply" id="Apply" type="button" onclick="modify();">
+			</td>
+			<td>
+				<iframe 
+					id          ="content" 
+					frameborder ="0" 
+					scrolling   ="yes" 
+					style       ="width:100%;height:100%;"
+					src	="UserProfileEditor.html"
+				>
+				</iframe>
+			</td>
+		</tr>
+	</table>
+</body>
+</html>
+

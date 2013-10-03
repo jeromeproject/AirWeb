@@ -2513,7 +2513,7 @@ static int NA_get_username_password(const char *username, char *plain_pass)
 			get_user_info(&ui, (char*)am_data);
 			strcpy(plain_pass, ui.PlainPassword);
 			ret = 0;
-		      DEBUG_TRACE(("%s", (char*)am_data));
+		    DEBUG_TRACE(("%s", (char*)am_data));
 		}
 		NA_Disconnect(handle);
 	}
@@ -3414,7 +3414,6 @@ static void prepare_cgi_environment(struct mg_connection *conn,
            slash == NULL ? 0 : (int) (slash - ri->uri), ri->uri,
            s == NULL ? prog : s);
   }
-
   addenv(blk, "SCRIPT_FILENAME=%s", prog);
   addenv(blk, "PATH_TRANSLATED=%s", prog);
   addenv(blk, "HTTPS=%s", conn->ssl == NULL ? "off" : "on");
@@ -3425,7 +3424,9 @@ static void prepare_cgi_environment(struct mg_connection *conn,
     addenv(blk, "CONTENT_TYPE=%s", s);
 
   if (ri->query_string != NULL) {
-    addenv(blk, "QUERY_STRING=%s", ri->query_string);
+	int len = strlen(ri->query_string);
+	mg_url_decode(ri->query_string, len + 1, (char *) ri->query_string, len + 1, 0);
+	addenv(blk, "QUERY_STRING=%s", ri->query_string);
   }
 
   if ((s = mg_get_header(conn, "Content-Length")) != NULL)

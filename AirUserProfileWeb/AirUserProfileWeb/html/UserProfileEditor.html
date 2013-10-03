@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+    <script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="js/user_profile.js"></script>
+    <script type="text/javascript">
+    function get_profile_cb(ret, msg)
+    {
+      //alert(ret);
+        $('#Apply').attr("disabled", ret ? false : true);
+        if(ret)
+        {
+          $('#ProfileTable').show();
+        }
+        else
+        {
+          $('#ProfileTable').hide();
+          if(get_param_from_query_string("username"))
+            $('#Msg').text(msg);
+        }
+    }
+      
+		$(document).ready(function()
+		{
+      $('#ProfileTable').hide();
+      var username = get_param_from_query_string("username");
+      if(username)
+        ajax_get_user_profile(get_profile_cb, username, "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
+		});
+		function destroy() {}
+    function apply()
+    {
+      ajax_update_user_profile(get_param_from_query_string("username"), "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
+    }
+	</script>
+    <title>User Profile Editor</title>
+  </head>
+  <body>
+    <div id="Msg"></div>
+    <table id="ProfileTable" style="width: 447px; height: 154px;" border="1">
+      <tbody>
+        <tr>
+          <td style="width: 210.867px;">PlainPassword</td>
+          <td style="width: 505.133px;"><input maxlength="30" size="30" id="tx_PlainPassword" type="password"><br>
+          </td>
+        </tr>
+        <tr>
+          <td>Confirm Password</td>
+          <td><input maxlength="30" size="30" id="tx_PlainPasswordConfirm" type="password"><br>
+          </td>
+        </tr>
+          <td>Nickname</td>
+          <td><input maxlength="30" size="30" id="tx_Nickname" type="text"><br>
+          </td>
+        </tr>
+        <tr>
+          <td>StatusComment</td>
+          <td><input maxlength="60" size="60" id="tx_Comment" type="text"><br>
+          </td>
+        </tr>
+        <tr>
+          <td>FriendList</td>
+          <td><input size="128" maxlength="2048" id="tx_FriendList" type="text"><br>
+          </td>
+        </tr>
+        <tr>
+          <td>BlackList</td>
+          <td><input maxlength="2048" size="128" id="tx_BlackList" type="text"><br>
+          </td>
+        </tr>
+        <tr>
+          <td><br>
+          </td>
+          <td><input value="Apply" id="Apply" type="button" onclick="apply();" disabled><br>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <br>
+  </body>
+</html>
