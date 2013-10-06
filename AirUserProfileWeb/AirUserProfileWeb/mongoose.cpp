@@ -3424,9 +3424,8 @@ static void prepare_cgi_environment(struct mg_connection *conn,
     addenv(blk, "CONTENT_TYPE=%s", s);
 
   if (ri->query_string != NULL) {
-	int len = strlen(ri->query_string);
-	mg_url_decode(ri->query_string, len + 1, (char *) ri->query_string, len + 1, 0);
 	addenv(blk, "QUERY_STRING=%s", ri->query_string);
+	DEBUG_TRACE(("%s", ri->query_string));
   }
 
   if ((s = mg_get_header(conn, "Content-Length")) != NULL)

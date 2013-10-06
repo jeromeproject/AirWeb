@@ -5,6 +5,23 @@ function get_param_from_query_string(name) {
     return results == null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
 }
 
+function get_user_list(cb, QueryString /*usless*/, UserList)
+{
+  var url_string_group = 'User.exe?Action=list';
+  $('#UserList').val("");
+  $.ajax({
+	url: url_string_group,
+	error: function(xhr) {
+	  alert(url_string_group + ' request failed');
+	  if(cb) cb(false, null);
+	},
+	success: function(response) {
+		$('#'+UserList).val(response);
+		if(cb) cb(true, response);
+	}
+  });
+}
+
 function ajax_get_login_info(cb, LoginUser, Group)
 {
   var url_string_group = 'User.exe?Action=info';
@@ -20,15 +37,17 @@ function ajax_get_login_info(cb, LoginUser, Group)
 		for(var i = 0; i < ent.length; i++)
 		{
 			var f = ent[i].split("=");
+			if(!f[1])
+				continue;
 			//alert(f[0] + " = " + f[1]);
-			f[1].trim();
+			f[1] = f[1].trim();
 			if(LoginUser && f[0] == "LoginUser")
 			{
-				$('#'+LoginUser).text(f[1]);
+				$('#'+LoginUser).val(f[1]);
 			}
 			else if(Group && f[0] == "Group")
 			{
-				$('#'+Group).text(f[1]);
+				$('#'+Group).val(f[1]);
 			}
 		}
 		if(cb) cb(true, null);
@@ -65,7 +84,7 @@ function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nic
 				//alert("error: " + ent[i]);
 				continue;
 			}
-			f[1].trim();
+			f[1] = f[1].trim();
 			//alert("info: " + f[1]);
 			if(f[0] == "PlainPassword")
 			{
@@ -83,7 +102,7 @@ function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nic
 			{
 				$('#'+Nickname).val(f[1]);
 			}
-			else if(f[0] == "Comment")
+			else if(f[0] == "StatusComment")
 			{
 				$('#'+Comment).val(f[1]);
 			}
@@ -102,28 +121,74 @@ function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nic
   });
  }
  
- function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
+function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
 {
-  var url_string = 'User.exe?Action=update&username=' + who
-						+ "&PlainPassword=" + $('#'+PlainPassword).val()
-						+ "&Nickname=" + $('#'+Nickname).val()
-						+ "&Comment=" + $('#'+Comment).val()
-						+ "&FriendList=" + $('#'+FriendList).val()
-						+ "&BlackList=" + $('#'+BlackList).val()
-						;
+	var url_string = 'User.exe?Action=update&username=' + who
+		+ "&PlainPassword=" + $('#'+PlainPassword).val()
+		+ "&Nickname=" + $('#'+Nickname).val()
+		+ "&StatusComment=" + $('#'+Comment).val()
+		+ "&FriendList=" + $('#'+FriendList).val()
+		+ "&BlackList=" + $('#'+BlackList).val()
+		;
 	//alert(url_string);
 	$.ajax({
 		url: url_string,
 		error: function(xhr) {
-		  alert(url_string + ' request failed');
+			if(cb) cb(false, url_string + ' request failed');
 		},
 		success: function(response) {
 			if(response.toLowerCase().indexOf("ok") == -1)
 			{
-				alert(response);
-				cb(false, response);
+				//alert(response);
+				if(cb) cb(false, response);
 			}
-			cb(true, null);
+			else
+				if(cb) cb(true, null);
 		}
 	});
- }
+}
+ 
+ function ajax_delete_user_profile(cb, who)
+ {
+	var url_string = 'User.exe?Action=del&username=' + who;
+	//alert(url_string);
+	$.ajax({
+		url: url_string,
+		error: function(xhr) {
+			if(cb) cb(false, url_string + ' request failed');
+		},
+		success: function(response) {
+			//alert(response);	
+			if(response.toLowerCase().indexOf("ok") == -1)
+			{
+				if(cb) cb(false, response);
+			}
+			else
+				if(cb) cb(true, null);
+		}
+	});
+}
+ 
+function ajax_create_user_profile(cb, Username, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
+{
+	var url_string = 'User.exe?Action=add&username=' + $('#'+Username).val()
+		+ "&PlainPassword=" + $('#'+PlainPassword).val()
+		;
+	//alert(url_string);
+	$.ajax({
+		url: url_string,
+		error: function(xhr) {
+			if(cb) cb(false, url_string + ' request failed');
+		},
+		success: function(response) {
+			//alert(response);
+			if(response.toLowerCase().indexOf("ok") == -1)
+			{
+				//alert(response);
+				if(cb) cb(false, response);
+			}
+			else
+				if(cb) cb(true, null);
+		}
+	});
+}

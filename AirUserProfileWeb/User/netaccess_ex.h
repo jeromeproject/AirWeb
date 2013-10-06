@@ -149,6 +149,11 @@ enum ExtendedCommandType {
       // text_info_1=user name
       // 傳回值：Result=true/false
       // 說明：當使用者不存在或其他錯誤時傳回：false
+  Ex_CommunityListUser,
+      // text_info_1=query string
+      // 傳回值：Result=true
+      //         Message=user name list (Message.Type1=AM_Message, Message.DataPtr1=user name list)
+      // 說明：傳回根據查詢字串過濾過後的使用者列表（每個使用者名稱使用'\n'隔開）
 
   Ex_Unknown=10000
 };
@@ -168,10 +173,17 @@ enum AdvMessageType {
 
 // UDWord NA_ExtendedCommand( unsigned int handle, int p1, UDWord p2, UDWord p3, UDWord p4, C_PortableTime time, const char *text_info_1, const char *text_info_2, UDWord *data1_ptr, UDWord *data2_ptr, UDWord *data3_ptr, UDWord *data4_ptr, C_PortableTime *time_ptr, char *path_filename_buf_ptr, int pfn_buf_size, C_PortableTime *am_time_ptr, int *am_type1_ptr, int *am_type2_ptr, UDWord *am_ext_type1_ptr, UDWord *am_ext_type2_ptr, UByte *data_buf1_ptr, UByte *data_buf2_ptr, int data_buf1_size, int data_buf2_size, int *data_size1_ptr, int *data_size2_ptr )
 #define NA_CommunityCheckLogin(handle, req_time, username, password) NA_ExtendedCommand(handle, Ex_CommunityCheckLogin, 0, 0, 0, req_time, username, password, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
 #define NA_CommunityQueryUser(handle, req_time, username, access, priv, ser_idx, node_idx, last_login_time, am_type, am_data, am_data_len, am_data_res_len) NA_ExtendedCommand(handle, Ex_CommunityQueryUser, 0, 0, 0, req_time, username, NULL, access, priv, ser_idx, node_idx, last_login_time, NULL, 0,0, am_type, 0,0,0,am_data,0,am_data_len,0,am_data_res_len,0)
+
 #define NA_CommunityCreateUser(handle, req_time, username, password) NA_ExtendedCommand(handle, Ex_CommunityCreateUser, 0, 0, 0, req_time, username, password, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
 #define NA_CommunityDeleteUser(handle, req_time, username) NA_ExtendedCommand(handle, Ex_CommunityDeleteUser, 0, 0, 0, req_time, username, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
 #define NA_CommunityModifyUser(handle, req_time, username, profile, len_profile) NA_ExtendedCommand(handle, Ex_CommunityModifyUser, 0, 0, 0, req_time, username, profile, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
+#define NA_CommunityListUser(handle, req_time, query_string, am_type, am_data, am_data_len,am_data_res_len) NA_ExtendedCommand(handle, Ex_CommunityListUser, 0, 0, 0, req_time, query_string, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0, am_type, 0,0,0,am_data,0,am_data_len,0,am_data_res_len,0)
+
 
 /*
 PlainPassword=test
@@ -184,14 +196,16 @@ ServerIndex=-1
 NodeIndex=-1
 */
 struct user_info {
-	char PlainPassword[128];
+	char PlainPassword[64];
 	int UserPL;
-	char Nickname[128];
+	char Nickname[64];
 	char StatusComment[128];
 	char FriendList[14000];
 	char BlackList[14000];
 	int ServerIndex;
 	int NodeIndex;
+	char QueryString[64];
 };
 
 #define MAX_USER_PROFILE_LEN sizeof(struct user_info)
+#define MAX_USER_LIST_SIZE 14096

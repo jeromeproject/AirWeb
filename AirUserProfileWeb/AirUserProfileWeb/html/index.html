@@ -1,40 +1,152 @@
+<!DOCTYPE html>
 <HTML>
 	<HEAD>
-		<TITLE>AirWeb Profile Editor</TITLE>
-		<script type="text/javascript" src="js/jquery-1.10.2.min.js"></script>
+		<TITLE>AirWeb User Profile Editor</TITLE>
+		<meta name="viewport" content="width=device-width, initial-scale=1"> 
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.css" />
+		<link rel="stylesheet" href="css/main.css" />
+		<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+		<script src="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.js"></script>
 		<script type="text/javascript" src="js/user_profile.js"></script>
 		<script type="text/javascript">
+			function get_user_list_cb(ret, msg)
+			{
+				//alert(msg);
+				$('#UserList').children().remove('li');
+				var ent = msg.split("\n");
+				for(var i = 0; i < ent.length; i++)
+				{
+					ent[i] = ent[i].trim();
+					if(!ent[i] || ent[i] == "")
+						continue;
+					//alert(ent[i]);
+					$('#UserList').append('<li><a onclick=\'modify("' + ent[i] + '")\'>' + ent[i] + '</a></li>');
+				}
+				$('#UserList').listview('refresh');
+				
+				//modify("person");
+			}
+
+			function get_login_info_cb(ret, msg)
+			{
+				//alert($('#Group').html());
+				$('#LoginUser').text($('#tx_LoginUser').val());
+				$('#Group').text($('#tx_Group').val());
+				if($('#Group').text() == "doctor")
+				{
+					modify($('#tx_LoginUser').val());
+					$('#UserListTable').hide();
+				}
+				else
+					$('#UserListTable').show();
+				//$('#content_iframe').height($('#content_iframe').contentWindow.document.body.scrollHeight);
+				//var iframe = document.getElementById('content_iframe');
+				//iframe.height = iframe.contentWindow.document.body.scrollHeight + "px";
+				$('iframe#content_iframe').load(function() {
+					// not work well
+					//this.style.height = this.contentWindow.document.body.offsetHeight + 'px';
+					//this.style.height = iframe.contentWindow.document.body.scrollHeight + "px";
+				});
+				
+				if($('#tx_Group').val() == "admin")
+				{
+					//alert("update user list");
+					get_user_list(get_user_list_cb, $('#tx_LoginUser').val(), "tx_UserList");
+				}
+			}
+			
 			$(document).ready(function()
 			{
-				ajax_get_login_info(null, "LoginUser", "Group");
+				//$('#mylist').mylist();
+				//$('iframe#content_iframe').height(800);
+				ajax_get_login_info(get_login_info_cb, "tx_LoginUser", "tx_Group");
 			});
 			function destroy() {}
-			function modify()
+			function modify(a)
 			{
-				$('#content').attr('src', 'UserProfileEditor.html?username=' + $('#LoginUser').text());
+				//alert(a);
+				$('#content_iframe').attr('src', 'UserProfileEditor.html?group=' + $('#tx_Group').val() + '&username=' + a + '&time=' + $.now());
+				// $('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + $('#LoginUser').text());
+				//$('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + a);
+				//var iframe = document.getElementById("content_iframe");
+				//iframe.document.location.reload(true);
+				//document.getElementById("content_iframe").contentDocument.location.reload(true);
+				//$('#content_iframe').load('UserProfileEditor.html?username=' + a);
+			}
+			$(function() { 
+
+				// Note that the trailing semicolon is required here 
+				update_user_list = function() { /*alert("test cb from iframe");*/ ajax_get_login_info(get_login_info_cb, "tx_LoginUser", "tx_Group"); }; 
+
+			});
+			function add()
+			{
+				$('#content_iframe').attr('src', 'UserProfileEditor.html?action=add&group=' + $('#tx_Group').val() + '&time=' + $.now());
 			}
 		</script>
 	</HEAD>
 	<BODY onunload="destroy()">
-	<table border=1 width=100% height=100%>
-		<tr>
-			<td width=120>
-				User:<div id=LoginUser></div><br>
-				Group:<div id=Group></div><br>
-				<input value="Apply" id="Apply" type="button" onclick="modify();">
-			</td>
-			<td>
-				<iframe 
-					id          ="content" 
-					frameborder ="0" 
-					scrolling   ="yes" 
-					style       ="width:100%;height:100%;"
-					src	="UserProfileEditor.html"
-				>
-				</iframe>
-			</td>
-		</tr>
-	</table>
+	<div data-role="page" data-theme="">
+		<div data-role="header">
+			<h1>User Profile Editor</h1>
+		</div><!-- /header -->
+
+		<div data-role="content">	
+			<table border=1 width=100% height=100%>
+				<tr>
+					<td width=180>
+						<table border=0 width=100%>
+							<tr>
+								<td width=30%>
+									User:
+								</td>
+								<td>
+									<div id=LoginUser></div>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									Group:
+								</td>
+								<td>
+									<div id=Group></div>
+								</td>
+							</tr>
+						</table>
+						<div id=UserListTable style="display:none">
+						<table border=0 width=100%>
+							<tr>
+								<td>
+									<ul id="UserList" data-role="listview" data-inset="true">
+									</ul>
+									<fieldset class="ui-grid-a">
+									   <div class="ui-block-b">
+										 <input type="button" value="Add" id="addUserButton" onclick="add()"/>
+									   </div>
+									</fieldset>
+								</td>
+							</tr>
+						</table>
+						</div>
+					</td>
+					<td id=content_td height=700>
+						<iframe 
+							id          ="content_iframe" 
+							frameborder ="0" 
+							scrolling   ="yes" 
+							style       ="width:100%;height:100%;"
+							src	=""
+						>
+						</iframe>
+					</td>
+				</tr>
+			</table>
+		</div><!-- /content -->
+
+	</div><!-- /page -->
+	<input id="tx_LoginUser" type="hidden">
+	<input id="tx_Group" type="hidden">
+	<input id="tx_UserList" type="hidden">
 </body>
 </html>
 
