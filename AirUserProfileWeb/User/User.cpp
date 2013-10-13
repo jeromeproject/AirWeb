@@ -149,7 +149,6 @@ int mg_url_decode(const char *src, int src_len, char *dst,
   return i >= src_len ? j : -1;
 }
 
-
 int _tmain(int argc, _TCHAR* argv[])
 {
 	bool ret;
@@ -173,35 +172,31 @@ int _tmain(int argc, _TCHAR* argv[])
 	fprintf(stderr, "%s\n", env_qs);
 	if(!qs_Action)
 	{
-		printf("Content-Type: text/plain\n"
-			"\n"
-			"No action: %s\n"
-			"failed\n", env_qs);
+		_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+			_T("No action: %S\n")
+			_T("failed\n"), env_qs);
 		return 0;
 	}
 	else if(strcasecmp(qs_Action, "info") == 0)
 	{
-		printf("Content-Type: text/plain\n"
-			"\n"
-			"LoginUser=%s\nGroup=%s\n", env_user, env_group);
+		_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+			_T("LoginUser=%S\nGroup=%S\n"), env_user, env_group);
 		return 0;
 	}
 
 	if(!qs_Username && strcasecmp(qs_Action, "list") != 0)
 	{
-		printf("Content-Type: text/plain\n"
-			"\n"
-			"No action: no specified username\n"
-			"failed\n");
+		_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+			_T("No action: no specified username\n")
+			_T("failed\n"));
 		return 0;
 	}
 
 	if(strcasecmp(env_group, "doctor") == 0 && strcasecmp(env_user, qs_Username) != 0)
 	{
-		printf("Content-Type: text/plain\n"
-			"\n"
-			"Action failed: %s could only get/set its profile (you modify %s)\n"
-			"failed\n", env_user, qs_Username);
+		_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+			_T("Action failed: %S could only get/set its profile (you modify %S)\n")
+			_T("failed\n"), env_user, qs_Username);
 		return 0;
 	}
 
@@ -219,22 +214,24 @@ int _tmain(int argc, _TCHAR* argv[])
 			UByte am_data[MAX_USER_PROFILE_LEN] = {0};
 			int am_data_len = sizeof(am_data);
 			int am_data_res_len;
-			printf("Content-Type: text/plain\n\n");
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n"));
 			if(NA_CommunityQueryUser(handle, tmp_time, qs_Username, &access, &priv, &ser_idx, &node_idx, &last_login_time, &am_type, am_data, am_data_len, &am_data_res_len))
 			{
-				printf("%s", am_data);
+				int len = strlen((char *)am_data);
+				//mg_url_decode((char *)am_data, len + 1, (char *) am_data, len + 1, 0);
+				_tprintf(_T("%S"), am_data);
 			}
 			else
 			{
-				printf("failed\n");
+				_tprintf(_T("failed\n"));
 			}
 		}
 		else if(strcasecmp(qs_Action, "list") == 0 && env_user)
 		{
-			printf("Content-Type: text/plain\n\n");
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n"));
 			if(strcasecmp(env_group, "admin") != 0)
 			{
-				printf("failed\n");
+				_tprintf(_T("failed\n"));
 			}
 			else
 			{
@@ -243,7 +240,9 @@ int _tmain(int argc, _TCHAR* argv[])
 				int am_data_len = sizeof(am_data);
 				int am_data_res_len;
 				NA_CommunityListUser(handle, req_time, env_user, &am_type, am_data, am_data_len, &am_data_res_len);
-				printf("%s", am_data);
+				int len = strlen((char *)am_data);
+				//mg_url_decode((char *)am_data, len + 1, (char *) am_data, len + 1, 0);
+				_tprintf(_T("%S"), am_data);
 			}
 		}
 		else if(strcasecmp(qs_Action, "add") == 0 && qs_Username && qs_PlainPassword) // add user
@@ -254,9 +253,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			UByte am_data[MAX_USER_PROFILE_LEN] = {0};
 			int am_data_len = sizeof(am_data);
 			int am_data_res_len;
-			printf("Content-Type: text/plain\n"
-				"\n"
-				"create user\n");
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+				_T("create user\n"));
 			if(NA_CommunityCreateUser(handle, tmp_time, qs_Username, qs_PlainPassword))
 			{
 				if(NA_CommunityQueryUser(handle, tmp_time, qs_Username, &access, &priv, &ser_idx, &node_idx, &last_login_time, &am_type, am_data, am_data_len, &am_data_res_len))
@@ -281,21 +279,21 @@ int _tmain(int argc, _TCHAR* argv[])
 								ui.BlackList,
 								ui.ServerIndex,
 								ui.NodeIndex, env_user);
-					if(NA_CommunityModifyUser(handle, req_time, qs_Username, profile, len+1))
+					if(NA_CommunityModifyUser(handle, req_time, qs_Username, (char*)profile, len+1))
 					{
-						printf("%s\n", profile);
-						printf("ok\n");
+						//mg_url_decode(profile, len + 1, (char *) profile, len + 1, 0);
+						_tprintf(_T("%S\nok\n"), profile);
 					}
 					else
 					{
-						printf("failed\n");
+						_tprintf(_T("failed\n"));
 					}
 				}
 				else
-					printf("failed\n");
+					_tprintf(_T("failed\n"));
 			}
 			else
-				printf("failed\n");
+				_tprintf(_T("failed\n"));
 		}
 		else if(strcasecmp(qs_Action, "update") == 0 && qs_Username) // update user
 		{
@@ -305,9 +303,8 @@ int _tmain(int argc, _TCHAR* argv[])
 			UByte am_data[MAX_USER_PROFILE_LEN] = {0};
 			int am_data_len = sizeof(am_data);
 			int am_data_res_len;
-			printf("Content-Type: text/plain\n"
-				"\n"
-				"update user\n");
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+				_T("update user\n"));
 			if(NA_CommunityQueryUser(handle, tmp_time, qs_Username, &access, &priv, &ser_idx, &node_idx, &last_login_time, &am_type, am_data, am_data_len, &am_data_res_len))
 			{
 				char profile[MAX_USER_PROFILE_LEN];
@@ -329,51 +326,48 @@ int _tmain(int argc, _TCHAR* argv[])
 							qs_FriendList ? qs_FriendList : ui.FriendList,
 							qs_BlackList ? qs_BlackList : ui.BlackList,
 							ui.ServerIndex,
-							ui.NodeIndex, ui.QueryString);
+							ui.NodeIndex, env_user);
 				if(NA_CommunityModifyUser(handle, req_time, qs_Username, profile, len+1))
 				{
-					printf("%s\n", profile);
-					printf("ok\n");
+					// mg_url_decode(profile, len + 1, (char *) profile, len + 1, 0);
+					_tprintf(_T("%S\nok\n"), profile);
 				}
 				else
 				{
-					printf("failed\n");
+					_tprintf(_T("failed\n"));
 				}
 			}
 			else
 			{
-				printf("failed\n");
+				_tprintf(_T("failed\n"));
 			}
 		}
 		else if(strcasecmp(qs_Action, "del") == 0 && qs_Username) // del user
 		{
-			printf("Content-Type: text/plain\n"
-				"\n"
-				"delete user\n");
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+				_T("delete user\n"));
 			if(NA_CommunityDeleteUser(handle, tmp_time, qs_Username))
 			{
-				printf("ok\n");
+				_tprintf(_T("ok\n"));
 			}
 			else
 			{
-				printf("failed\n");
+				_tprintf(_T("failed\n"));
 			}
 		}
 		else
 		{
-			printf("Content-Type: text/plain\n"
-				"\n"
-				"Command error: %s\n"
-				"failed\n", env_qs);
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+				_T("Command error: %S\n")
+				_T("failed\n"), env_qs);
 		}
 		NA_Disconnect(handle);
 	}
 	else
 	{
-		printf("Content-Type: text/plain\n"
-			"\n"
-			"Disconnected\n"
-			"failed\n");
+		_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+			_T("Disconnected\n")
+			_T("failed\n"));
 	}
 	NA_DestroyObject(handle);
 	

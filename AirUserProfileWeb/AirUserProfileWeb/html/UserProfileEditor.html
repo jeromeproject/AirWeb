@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1"> 
 		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.css" />
 		<link rel="stylesheet" href="css/main.css" />
@@ -86,7 +87,7 @@
 				{
 					parent.update_user_list();
 				}
-				var url = 'UserProfileEditor.html?group=' + get_param_from_query_string("group") + '&username=' + $('#tx_Username').val();
+				var url = 'UserProfileEditor.html?group=' + get_param_from_query_string("group") + '&username=' + $('#tx_Username').val() + '&time=' + $.now();
 				//alert(url);
 				window.location = url;
 				//$(location).attr('href', 'UserProfileEditor.html?group=' + get_param_from_query_string("group") + '&username=' + $('#tx_Username').val());

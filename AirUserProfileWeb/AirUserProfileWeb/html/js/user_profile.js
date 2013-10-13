@@ -7,15 +7,20 @@ function get_param_from_query_string(name) {
 
 function get_user_list(cb, QueryString /*usless*/, UserList)
 {
-  var url_string_group = 'User.exe?Action=list';
-  $('#UserList').val("");
+  var url_string = 'User.exe?Action=list' + '&time=' + $.now();
+  //alert(url_string);
+  $('#'+UserList).val("");
   $.ajax({
-	url: url_string_group,
+	url: url_string,
+	dataType: "text",
+    contentType: 'text/plain;charset=utf-8',
 	error: function(xhr) {
-	  alert(url_string_group + ' request failed');
+	  alert(url_string + ' request failed');
 	  if(cb) cb(false, null);
 	},
 	success: function(response) {
+		//response = escape(response);
+		//alert(response);
 		$('#'+UserList).val(response);
 		if(cb) cb(true, response);
 	}
@@ -24,9 +29,10 @@ function get_user_list(cb, QueryString /*usless*/, UserList)
 
 function ajax_get_login_info(cb, LoginUser, Group)
 {
-  var url_string_group = 'User.exe?Action=info';
+  var url_string_group = 'User.exe?Action=info' + '&time=' + $.now();
   $.ajax({
 	url: url_string_group,
+	contentType: 'text/plain;charset=utf-8',
 	error: function(xhr) {
 	  alert(url_string_group + ' request failed');
 	  if(cb) cb(false, null);
@@ -57,9 +63,10 @@ function ajax_get_login_info(cb, LoginUser, Group)
 
 function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
 {
-  var url_string = 'User.exe?Action=get&username=' + who;
+  var url_string = 'User.exe?Action=get&username=' + who + '&time=' + $.now();
   $.ajax({
 	url: url_string,
+	contentType: 'text/plain;charset=utf-8',
 	error: function(xhr) {
 		alert(url_string + ' request failed');
 		if(cb)
@@ -123,16 +130,27 @@ function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nic
  
 function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
 {
+	var cNickname = encodeURIComponent($('#'+Nickname).val());
+	var cComment = encodeURIComponent($('#'+Comment).val());
+	var cFriendList = encodeURIComponent($('#'+FriendList).val());
+	var cBlackList = encodeURIComponent($('#'+BlackList).val());
+	// var cNickname = $('#'+Nickname).val();
+	// var cComment = $('#'+Comment).val();
+	// var cFriendList = $('#'+FriendList).val();
+	// var cBlackList = $('#'+BlackList).val();
 	var url_string = 'User.exe?Action=update&username=' + who
 		+ "&PlainPassword=" + $('#'+PlainPassword).val()
-		+ "&Nickname=" + $('#'+Nickname).val()
-		+ "&StatusComment=" + $('#'+Comment).val()
-		+ "&FriendList=" + $('#'+FriendList).val()
-		+ "&BlackList=" + $('#'+BlackList).val()
+		+ "&Nickname=" + cNickname
+		+ "&StatusComment=" + cComment
+		+ "&FriendList=" + cFriendList
+		+ "&BlackList=" + cBlackList
+		+ '&time=' + $.now()
 		;
+	//url_string = encodeURIComponent(url_string);
 	//alert(url_string);
 	$.ajax({
 		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
 		error: function(xhr) {
 			if(cb) cb(false, url_string + ' request failed');
 		},
@@ -150,10 +168,12 @@ function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, 
  
  function ajax_delete_user_profile(cb, who)
  {
-	var url_string = 'User.exe?Action=del&username=' + who;
+	//who = encodeURIComponent(who);
+	var url_string = 'User.exe?Action=del&username=' + who + '&time=' + $.now();
 	//alert(url_string);
 	$.ajax({
 		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
 		error: function(xhr) {
 			if(cb) cb(false, url_string + ' request failed');
 		},
@@ -173,10 +193,13 @@ function ajax_create_user_profile(cb, Username, PlainPassword, PlainPasswordConf
 {
 	var url_string = 'User.exe?Action=add&username=' + $('#'+Username).val()
 		+ "&PlainPassword=" + $('#'+PlainPassword).val()
+		+ '&time=' + $.now()
 		;
+	//url_string = encodeURIComponent(url_string);
 	//alert(url_string);
 	$.ajax({
 		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
 		error: function(xhr) {
 			if(cb) cb(false, url_string + ' request failed');
 		},

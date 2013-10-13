@@ -2,9 +2,10 @@
 <HTML>
 	<HEAD>
 		<TITLE>AirWeb User Profile Editor</TITLE>
-		<meta name="viewport" content="width=device-width, initial-scale=1"> 
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.css" />
-		<link rel="stylesheet" href="css/main.css" />
+		<xlink rel="stylesheet" href="css/main.css" />
 		<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
 		<script src="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.js"></script>
 		<script type="text/javascript" src="js/user_profile.js"></script>
@@ -64,8 +65,10 @@
 			function destroy() {}
 			function modify(a)
 			{
+				a = encodeURIComponent(a);
 				//alert(a);
 				$('#content_iframe').attr('src', 'UserProfileEditor.html?group=' + $('#tx_Group').val() + '&username=' + a + '&time=' + $.now());
+				//alert($('#content_iframe').attr('src'));
 				// $('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + $('#LoginUser').text());
 				//$('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + a);
 				//var iframe = document.getElementById("content_iframe");
