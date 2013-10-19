@@ -14,6 +14,11 @@
 //
 // Alternatively, you can license this library under a commercial
 // license, as set out in <http://cesanta.com/products.html>.
+#include <iostream>
+#include <map>
+#include <string>
+using namespace std;
+
 
 #if defined(_WIN32)
 	#define DIR_SPLITER "\\"
@@ -491,6 +496,9 @@ static const char *config_options[] = {
   "request_timeout_ms", "30000",
   NULL
 };
+
+typedef std::map<std::string, time_t> ClientNonceMap;
+ClientNonceMap nonce_map;
 
 struct mg_context {
   volatile int stop_flag;         // Should we stop event loop
@@ -2309,13 +2317,15 @@ static int check_password(const char *method, const char *ha1, const char *uri,
       qop == NULL || response == NULL) {
     return 0;
   }
+  time_t now = time(NULL);
 
-  // NOTE(lsm): due to a bug in MSIE, we do not compare the URI
+  time_t c = nonce_map[ha1];
   // TODO(lsm): check for authentication timeout
   if (// strcmp(dig->uri, c->ouri) != 0 ||
       strlen(response) != 32
-      // || now - strtoul(dig->nonce, NULL, 10) > 3600
+      || now - strtoul(nonce, NULL, 10) > 3600 || c == -1
       ) {
+	nonce_map[ha1] = 0;
     return 0;
   }
 
@@ -2323,7 +2333,17 @@ static int check_password(const char *method, const char *ha1, const char *uri,
   mg_md5(expected_response, ha1, ":", nonce, ":", nc,
       ":", cnonce, ":", qop, ":", ha2, NULL);
 
-  return mg_strcasecmp(response, expected_response) == 0;
+  int res = mg_strcasecmp(response, expected_response) == 0;
+  if(res)
+  {
+	  if(mg_strncasecmp(uri, "/logout.exe", 11) == 0)
+	  {
+		  nonce_map[ha1] = -1;
+	  }
+	  else
+		  nonce_map[ha1] = now;
+  }
+  return res;
 }
 
 // Use the global passwords file, if specified by auth_gpass option,
@@ -5165,6 +5185,25 @@ struct mg_connection *mg_download(const char *host, int port, int use_ssl,
   return conn;
 }
 
+#define strcasecmp stricmp
+#define strncasecmp  strnicmp 
+
+static char* strcasestr(const char *dst, const char *src) {
+        int len, dc, sc;
+
+        if(src[0] == '\0')
+                return (char*)(uintptr_t)dst;
+
+        len = strlen(src) - 1;
+        sc  = tolower(src[0]);
+        for(; (dc = *dst); dst++) {
+                dc = tolower(dc);
+                if(sc == dc && (len == 0 || !strncasecmp(dst+1, src+1, len)))
+                        return (char*)(uintptr_t)dst;
+        }
+        return NULL;
+}
+
 static void process_new_connection(struct mg_connection *conn) {
   struct mg_request_info *ri = &conn->request_info;
   int keep_alive_enabled, keep_alive, discard_len;
@@ -5180,6 +5219,11 @@ static void process_new_connection(struct mg_connection *conn) {
     if (!getreq(conn, ebuf, sizeof(ebuf))) {
       send_http_error(conn, 500, "Server Error", "%s", ebuf);
       conn->must_close = 1;
+/*
+	} else if(strncasecmp(conn->request_info.uri, "/logout.exe", 11) == 0) {
+		snprintf(ebuf, sizeof(ebuf), "Logout");
+		send_authorization_request(conn);
+*/
     } else if (!is_valid_uri(conn->request_info.uri)) {
       snprintf(ebuf, sizeof(ebuf), "Invalid URI: [%s]", ri->uri);
       send_http_error(conn, 400, "Bad Request", "%s", ebuf);
