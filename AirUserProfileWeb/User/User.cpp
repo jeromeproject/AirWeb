@@ -192,7 +192,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		return 0;
 	}
 
-	if(strcasecmp(env_group, "doctor") == 0 && strcasecmp(env_user, qs_Username) != 0)
+	if(strcasecmp(env_group, "doctor") == 0 && qs_Username && strcasecmp(env_user, qs_Username) != 0)
 	{
 		_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
 			_T("Action failed: %S could only get/set its profile (you modify %S)\n")
@@ -326,7 +326,7 @@ int _tmain(int argc, _TCHAR* argv[])
 							qs_FriendList ? qs_FriendList : ui.FriendList,
 							qs_BlackList ? qs_BlackList : ui.BlackList,
 							ui.ServerIndex,
-							ui.NodeIndex, env_user);
+							ui.NodeIndex, ui.QueryString);
 				if(NA_CommunityModifyUser(handle, req_time, qs_Username, profile, len+1))
 				{
 					// mg_url_decode(profile, len + 1, (char *) profile, len + 1, 0);
