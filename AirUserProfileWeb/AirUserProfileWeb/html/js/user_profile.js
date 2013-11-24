@@ -7,7 +7,7 @@ function get_param_from_query_string(name) {
 
 function get_user_list(cb, QueryString /*usless*/, UserList)
 {
-  var url_string = 'User.exe?Action=list' + '&time=' + $.now();
+  var url_string = 'User.exe?Action=list' + '&QueryString=' + QueryString + '&time=' + $.now();
   //alert(url_string);
   $('#'+UserList).val("");
   $.ajax({
@@ -61,6 +61,17 @@ function ajax_get_login_info(cb, LoginUser, Group)
   });
 }
 
+function strip_quote(str)
+{
+	if(str[0] == '"' && str[str.length - 1] == '"')
+	{
+		//alert(str);
+		//str[0] = str[str.length] = '';
+		return str.substring(1, str.length-1);
+	}
+	return str;
+}
+
 function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
 {
   var url_string = 'User.exe?Action=get&username=' + who + '&time=' + $.now();
@@ -75,6 +86,7 @@ function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nic
 	success: function(response) {
 		var ent = response.split("\r\n");
 		//alert(response);
+		var userpl;
 		if(ent.length < 4)
 		{
 			//alert(response);
@@ -99,41 +111,101 @@ function ajax_get_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nic
 				$('#'+PlainPassword).val(f[1]);
 				$('#'+PlainPasswordConfirm).val(f[1]);
 			}
-			/*
 			else if(f[0] == "UserPL")
 			{
-				$('#'+UserPL).val(f[1]);
+				// $('#'+UserPL).val(f[1]);
+				userpl = f[1];
 			}
-			*/
 			else if(f[0] == "Nickname")
 			{
 				$('#'+Nickname).val(f[1]);
 			}
 			else if(f[0] == "StatusComment")
 			{
-				$('#'+Comment).val(f[1]);
+				$('#'+Comment).val(strip_quote(f[1]));
 			}
 			else if(f[0] == "FriendList")
 			{
-				$('#'+FriendList).val(f[1]);
+				$('#'+FriendList).val(strip_quote(f[1]));
 			}
 			else if(f[0] == "BlackList")
 			{
-				$('#'+BlackList).val(f[1]);
+				$('#'+BlackList).val(strip_quote(f[1]));
 			}
 		}
 		if(cb)
-			cb(true, null);
+			cb(true, null, userpl);
 	}
   });
+ }
+
+function ajax_get_user_profile_async(who)
+{
+	var oUser = new Object;
+	oUser.UserName = who;
+	oUser.UserPL = -1;
+	var url_string = 'User.exe?Action=get&username=' + who + '&time=' + $.now();
+	$.ajax({
+		url: url_string,
+		cache: false,
+		async: false,
+		contentType: 'text/plain;charset=utf-8',
+		error: function(xhr) {
+			alert(url_string + ' request failed');
+		},
+		success: function(response) {
+			var ent = response.split("\r\n");
+			//alert(response);
+			if(ent.length < 4)
+			{
+				return;
+			}
+			for(var i = 0; i < ent.length; i++)
+			{
+				var f = ent[i].split("=");
+				//alert("info: " + ent[i]);
+				if(f.length == 1)
+				{
+					//alert("error: " + ent[i]);
+					continue;
+				}
+				f[1] = f[1].trim();
+				//alert("info: " + f[1]);
+				if(f[0] == "PlainPassword")
+					oUser.PlainPassword = f[1];
+				else if(f[0] == "UserPL")
+				{
+					oUser.UserPL = f[1];
+				}
+				else if(f[0] == "Nickname")
+				{
+					oUser.Nickname = f[1];
+				}
+				else if(f[0] == "StatusComment")
+				{
+					oUser.Comment = strip_quote(f[1]);
+				}
+				else if(f[0] == "FriendList")
+				{
+					oUser.FriendList = strip_quote(f[1]);
+				}
+				else if(f[0] == "BlackList")
+				{
+					oUser.BlackList = strip_quote(f[1]);
+				}
+			}
+		}
+	});
+  
+	return oUser;
  }
  
 function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
 {
 	var cNickname = encodeURIComponent($('#'+Nickname).val());
-	var cComment = encodeURIComponent($('#'+Comment).val());
-	var cFriendList = encodeURIComponent($('#'+FriendList).val());
-	var cBlackList = encodeURIComponent($('#'+BlackList).val());
+	var cComment = encodeURIComponent('"' + $('#'+Comment).val() + '"');
+	var cFriendList = encodeURIComponent('"' + $('#'+FriendList).val() + '"');
+	var cBlackList = encodeURIComponent('"' + $('#'+BlackList).val() + '"');
 	// var cNickname = $('#'+Nickname).val();
 	// var cComment = $('#'+Comment).val();
 	// var cFriendList = $('#'+FriendList).val();
@@ -189,9 +261,20 @@ function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, 
 	});
 }
  
-function ajax_create_user_profile(cb, Username, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
+function ajax_create_user_profile(cb, UserPL, QueryString, Username, PlainPassword, PlainPasswordConfirm, Nickname, Comment, FriendList, BlackList)
 {
+	var valUserPL = -1;
+	switch(UserPL)
+	{
+	case "unit":
+		valUserPL = 1;
+		break;
+	default:
+		valUserPL = 2;	// doctor
+	}
 	var url_string = 'User.exe?Action=add&username=' + $('#'+Username).val()
+		+ "&UserPL=" + valUserPL
+		+ "&QueryString=" + QueryString
 		+ "&PlainPassword=" + $('#'+PlainPassword).val()
 		+ '&time=' + $.now()
 		;

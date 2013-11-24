@@ -8,6 +8,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AirUserProfileWeb", "AirUse
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "User", "User\User.vcxproj", "{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Logout", "Logout\Logout.vcxproj", "{42401036-C73D-4416-BECA-88BB7371D0F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -22,6 +24,10 @@ Global
 		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Debug|Win32.Build.0 = Debug|Win32
 		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Release|Win32.ActiveCfg = Release|Win32
 		{20DFEDDE-DC27-4F13-B531-19CFDB75AAD8}.Release|Win32.Build.0 = Release|Win32
+		{42401036-C73D-4416-BECA-88BB7371D0F3}.Debug|Win32.ActiveCfg = Debug|Win32
+		{42401036-C73D-4416-BECA-88BB7371D0F3}.Debug|Win32.Build.0 = Debug|Win32
+		{42401036-C73D-4416-BECA-88BB7371D0F3}.Release|Win32.ActiveCfg = Release|Win32
+		{42401036-C73D-4416-BECA-88BB7371D0F3}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

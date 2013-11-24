@@ -10,10 +10,37 @@
 		<script src="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.js"></script>
 		<script type="text/javascript" src="js/user_profile.js"></script>
 		<script type="text/javascript">
+			var show_units_string = "Units";
+			var show_doctors_string = "Doctors";
+			var current_list_level = "none";
+			var current_unit = "none";
+			function update_button_status()
+			{
+				if($('#Group').text() == "admin" && current_list_level == "unit")
+				{
+					$('#add_button').show();
+					$('#up_level_button').show();
+				}
+				else if($('#tx_Group').val() == "admin" || $('#tx_Group').val() == "unit")
+				{
+					$('#add_button').show();
+					$('#up_level_button').hide();
+				}
+				else
+				{
+					$('#add_button').hide();
+					$('#up_level_button').hide();
+				}
+			}
 			function get_user_list_cb(ret, msg)
 			{
 				//alert(msg);
 				$('#UserList').children().remove('li');
+				if(current_list_level == "admin")
+					type_of_list = show_units_string;
+				else
+					type_of_list = show_doctors_string + ' belong to ' + current_unit;
+				$('#UserList').append('<li data-role="list-divider" role="heading" class="ui-li ui-li-divider ui-bar-b">' + type_of_list + '</li>');
 				var ent = msg.split("\n");
 				for(var i = 0; i < ent.length; i++)
 				{
@@ -24,7 +51,7 @@
 					$('#UserList').append('<li><a onclick=\'modify("' + ent[i] + '")\'>' + ent[i] + '</a></li>');
 				}
 				$('#UserList').listview('refresh');
-				
+				update_button_status();
 				//modify("person");
 			}
 
@@ -35,11 +62,20 @@
 				$('#Group').text($('#tx_Group').val());
 				if($('#Group').text() == "doctor")
 				{
+					current_list_level = "doctor";
 					modify($('#tx_LoginUser').val());
 					$('#UserListTable').hide();
 				}
-				else
+				if($('#Group').text() == "unit")
+				{
+					current_list_level = "unit";
 					$('#UserListTable').show();
+				}
+				else
+				{
+					current_list_level = "admin";
+					$('#UserListTable').show();
+				}
 				//$('#content_iframe').height($('#content_iframe').contentWindow.document.body.scrollHeight);
 				//var iframe = document.getElementById('content_iframe');
 				//iframe.height = iframe.contentWindow.document.body.scrollHeight + "px";
@@ -49,11 +85,14 @@
 					//this.style.height = iframe.contentWindow.document.body.scrollHeight + "px";
 				});
 				
-				if($('#tx_Group').val() == "admin")
+				if($('#tx_Group').val() == "admin" || $('#tx_Group').val() == "unit")
 				{
 					//alert("update user list");
+					current_unit = $('#tx_LoginUser').val();
 					get_user_list(get_user_list_cb, $('#tx_LoginUser').val(), "tx_UserList");
 				}
+				else
+					update_button_status();
 			}
 			
 			$(document).ready(function()
@@ -65,26 +104,75 @@
 			function destroy() {}
 			function modify(a)
 			{
-				a = encodeURIComponent(a);
+				username = encodeURIComponent(a);
 				//alert(a);
-				$('#content_iframe').attr('src', 'UserProfileEditor.html?group=' + $('#tx_Group').val() + '&username=' + a + '&time=' + $.now());
+				var oUser = ajax_get_user_profile_async(username);
+				//alert(oUser.UserPL);
+				switch(oUser.UserPL)
+				{
+				case "1":	// hospital or unit or group
+					// enter sublist
+					//alert("down to unit");
+					current_list_level = "unit";
+					//alert(oUser.UserName);
+					current_unit = oUser.UserName;
+					get_user_list(get_user_list_cb, oUser.UserName, "tx_UserList");
+					$('#content_iframe').attr('src', 'UserProfileEditor.html?group=' + $('#tx_Group').val() + '&username=' + username + '&time=' + $.now());
+					break;
+				case "-1":
+					alert("unknown user type");
+				case "2": // general doctor
+					$('#content_iframe').attr('src', 'UserProfileEditor.html?group=' + $('#tx_Group').val() + '&username=' + username + '&time=' + $.now());
+					break;
+				}
+
+				//$('#content_iframe').attr('src', 'UserProfileEditor.html?group=' + $('#tx_Group').val() + '&username=' + username + '&time=' + $.now());
 				//alert($('#content_iframe').attr('src'));
 				// $('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + $('#LoginUser').text());
-				//$('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + a);
+				//$('#content_iframe').attr('location', 'UserProfileEditor.html?username=' + username);
 				//var iframe = document.getElementById("content_iframe");
 				//iframe.document.location.reload(true);
 				//document.getElementById("content_iframe").contentDocument.location.reload(true);
-				//$('#content_iframe').load('UserProfileEditor.html?username=' + a);
+				//$('#content_iframe').load('UserProfileEditor.html?username=' + username);
+			}
+			function up_level()
+			{
+				if(current_list_level == "unit")
+				{
+					//alert("go up admin");
+					current_list_level = "admin";
+					get_user_list(get_user_list_cb, $('#tx_LoginUser').val(), "tx_UserList");
+				}
 			}
 			$(function() { 
 
 				// Note that the trailing semicolon is required here 
-				update_user_list = function() { /*alert("test cb from iframe");*/ ajax_get_login_info(get_login_info_cb, "tx_LoginUser", "tx_Group"); }; 
+				update_user_list = function()
+				{ 
+					/*alert("test cb from iframe");*/
+					if(current_list_level == "unit")
+						get_user_list(get_user_list_cb, current_unit, "tx_UserList");
+					else
+						get_user_list(get_user_list_cb, $('#tx_LoginUser').val(), "tx_UserList");
+					//ajax_get_login_info(get_login_info_cb, null, null);
+				}; 
 
 			});
 			function add()
 			{
-				$('#content_iframe').attr('src', 'UserProfileEditor.html?action=add&group=' + $('#tx_Group').val() + '&time=' + $.now());
+				var userpl;
+				if(current_list_level == "unit")
+				{
+					qs = current_unit;
+					userpl = 'doctor';
+				}
+				else
+				{
+					qs = $('#tx_LoginUser').val();
+					userpl = 'unit';
+				}
+
+				$('#content_iframe').attr('src', 'UserProfileEditor.html?action=add&group=' + $('#tx_Group').val() + '&UserPL=' + userpl + '&QueryString=' + qs + '&time=' + $.now());
 			}
 			function logout()
 			{
@@ -101,7 +189,7 @@
 		<div data-role="content">	
 			<table border=1 width=100% height=100%>
 				<tr>
-					<td width=180>
+					<td width=250>
 						<table border=0 width=100%>
 							<tr>
 								<td width=30%>
@@ -126,14 +214,27 @@
 							</tr>
 						</table>
 						<div id=UserListTable style="display:none">
-						<table border=0 width=100%>
+						<table border=0 width=98%>
 							<tr>
 								<td>
-									<ul id="UserList" data-role="listview" data-inset="true">
+									<ul id="UserList" data-role="listview" class="ui-listview" data-inset="true">
+									<!--<li data-role="list-divider" role="heading" class="ui-li ui-li-divider ui-bar-b">A</li>
+									<li id="xUserList" data-corners="false" data-shadow="false" data-iconshadow="true" data-wrapperels="div" data-icon="arrow-r" data-iconpos="right" data-theme="c" class="ui-btn ui-btn-icon-right ui-li-has-arrow ui-li ui-btn-up-c"><div class="ui-btn-inner ui-li"></li>
+									<!--<li id="UserList" data-role="listview" data-inset="true" data-corners="false" data-shadow="false" data-iconshadow="true" data-wrapperels="div" data-icon="arrow-r" data-iconpos="right" data-theme="c" class="ui-btn ui-btn-icon-right ui-li-has-arrow ui-li ui-btn-up-c">
+									</li>-->
 									</ul>
 									<fieldset class="ui-grid-a">
-									   <div class="ui-block-b">
+									   <div id=add_button class="ui-block-b">
 										 <input type="button" value="Add" id="addUserButton" onclick="add()"/>
+									   </div>
+									</fieldset>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<fieldset class="ui-grid-a">
+									   <div id=up_level_button class="ui-block-b">
+										 <input type="button" value="Back" id="upLevelButton" onclick="up_level()"/>
 									   </div>
 									</fieldset>
 								</td>

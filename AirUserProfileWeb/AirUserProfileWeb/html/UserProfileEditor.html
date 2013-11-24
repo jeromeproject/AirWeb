@@ -10,7 +10,9 @@
 		<script type="text/javascript" src="js/user_profile.js"></script>
 		
 		<script type="text/javascript">
-		function get_profile_cb(ret, msg)
+		var show_unit_string = "Unit";	//1
+		var show_doctor_string = "Doctor"; //2
+		function get_profile_cb(ret, msg, user_pl)
 		{
 			//alert(ret);
 			//$('#Apply').attr("disabled", ret ? false : true);
@@ -20,8 +22,14 @@
 			{
 				$('#ProfileTable').show();
 				$('#UsernameDiv').text(get_param_from_query_string("username"));
-				if(get_param_from_query_string("group") == "admin")
+				if(get_param_from_query_string("group") == "admin" || get_param_from_query_string("group") == "unit" )
 					$('#DeleteDiv').show();
+				//alert(user_pl);
+				if(user_pl == "1")
+					$('#UserLevelDiv').text(show_unit_string);
+				else
+					$('#UserLevelDiv').text(show_doctor_string);
+
 			}
 			else
 			{
@@ -120,7 +128,16 @@
 				alert("The format of user name is wrong");
 				return;
 			}
-			ajax_create_user_profile(create_profile_cb, "tx_Username", "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
+			query_string = get_param_from_query_string("QueryString");
+			if(query_string == "")
+			{
+				alert("No unit is assigned");
+				return;
+			}
+			if($('#UserLevelDiv').text() == show_unit_string)
+				ajax_create_user_profile(create_profile_cb, "unit", query_string, "tx_Username", "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
+			else 
+				ajax_create_user_profile(create_profile_cb, "doctor", query_string, "tx_Username", "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
 		}
 		
 		$(document).ready(function()
@@ -137,6 +154,10 @@
 				$('#ProfileTable').show();
 				$('#UsernameDiv').hide();
 				$('#tx_Username').show();
+				if(get_param_from_query_string("UserPL") == "unit")
+					$('#UserLevelDiv').text(show_unit_string);
+				else
+					$('#UserLevelDiv').text(show_doctor_string);
 			}
 			else
 			{
@@ -165,6 +186,11 @@
         </tr>
       </thead>  
       <tbody>
+        <tr>
+          <td>Level</td>
+          <td><div id=UserLevelDiv></div><br>
+          </td>
+        </tr>
         <tr>
           <td>PlainPassword</td>
           <td><input maxlength="30" size="30" id="tx_PlainPassword" type="password"><br>

@@ -95,7 +95,7 @@ static char * strip_start_symbol(char *str, char c)
 static bool get_user_info(struct user_info *ui, char *am_data)
 {
 	bool ret = sscanf(am_data, "PlainPassword%[^\n]\n"
-				"UserPL=%d\n"
+				"UserPL=%d\n"	// 0 1 2 3
 				"Nickname%[^\n]\n"
 				"StatusComment%[^\n]\n"
 				"FriendList%[^\n]\n"
@@ -168,6 +168,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	char *qs_StatusComment = get_var_from_qs(env_qs, "StatusComment");
 	char *qs_FriendList = get_var_from_qs(env_qs, "FriendList");
 	char *qs_BlackList = get_var_from_qs(env_qs, "BlackList");
+	char *qs_QueryString = get_var_from_qs(env_qs, "QueryString");
 
 	fprintf(stderr, "%s\n", env_qs);
 	if(!qs_Action)
@@ -199,7 +200,13 @@ int _tmain(int argc, _TCHAR* argv[])
 			_T("failed\n"), env_user, qs_Username);
 		return 0;
 	}
-
+	if(qs_QueryString && strcasecmp(env_group, "admin") != 0 && strcmp(qs_QueryString, env_user) != 0)
+	{
+			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n")
+			_T("Permission Denied\n")
+			_T("failed\n"));
+		return 0;
+	}
 #if 1
 	handle=NA_CreateObject(0);
 	ret = NA_Connect(handle, remote_addr, NULL );
@@ -229,7 +236,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		else if(strcasecmp(qs_Action, "list") == 0 && env_user)
 		{
 			_tprintf(_T("Content-Type: text/plain;charset='utf-8'\n\n"));
-			if(strcasecmp(env_group, "admin") != 0)
+			if(strcasecmp(env_group, "admin") != 0 && strcasecmp(env_group, "unit") != 0)
 			{
 				_tprintf(_T("failed\n"));
 			}
@@ -239,13 +246,17 @@ int _tmain(int argc, _TCHAR* argv[])
 				UByte am_data[MAX_USER_LIST_SIZE] = {0};
 				int am_data_len = sizeof(am_data);
 				int am_data_res_len;
-				NA_CommunityListUser(handle, req_time, env_user, &am_type, am_data, am_data_len, &am_data_res_len);
+				char *target = env_user;
+				if(qs_QueryString)
+					target = qs_QueryString;
+
+				NA_CommunityListUser(handle, req_time, target, &am_type, am_data, am_data_len, &am_data_res_len);
 				int len = strlen((char *)am_data);
 				//mg_url_decode((char *)am_data, len + 1, (char *) am_data, len + 1, 0);
 				_tprintf(_T("%S"), am_data);
 			}
 		}
-		else if(strcasecmp(qs_Action, "add") == 0 && qs_Username && qs_PlainPassword) // add user
+		else if(strcasecmp(qs_Action, "add") == 0 && qs_Username && qs_PlainPassword && qs_UserPL) // add user
 		{
 			C_PortableTime last_login_time;
 			UDWord access, priv, ser_idx, node_idx;
@@ -262,8 +273,11 @@ int _tmain(int argc, _TCHAR* argv[])
 					char profile[MAX_USER_PROFILE_LEN];
 					struct user_info ui;
 					get_user_info(&ui, (char*)am_data);
+					char *target = env_user;
+					if(qs_QueryString)
+						target = qs_QueryString;
 					int len = sprintf(profile, "PlainPassword=%s\n"
-								"UserPL=%d\n"
+								"UserPL=%s\n"
 								"Nickname=%s\n"
 								"StatusComment=%s\n"
 								"FriendList=%s\n"
@@ -272,13 +286,13 @@ int _tmain(int argc, _TCHAR* argv[])
 								"NodeIndex=%d\n"
 								"QueryString=%s\n",
 								ui.PlainPassword,
-								ui.UserPL,
+								qs_UserPL,
 								ui.Nickname,
 								ui.StatusComment,
 								ui.FriendList,
 								ui.BlackList,
 								ui.ServerIndex,
-								ui.NodeIndex, env_user);
+								ui.NodeIndex, target);
 					if(NA_CommunityModifyUser(handle, req_time, qs_Username, (char*)profile, len+1))
 					{
 						//mg_url_decode(profile, len + 1, (char *) profile, len + 1, 0);

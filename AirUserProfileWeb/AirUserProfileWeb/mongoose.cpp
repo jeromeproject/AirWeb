@@ -2512,7 +2512,7 @@ static bool get_user_info(struct user_info *ui, char *am_data)
 	return ret;
 }
 
-static int NA_get_username_password(const char *username, char *plain_pass)
+static int NA_get_username_password(const char *username, char *plain_pass, int *user_pl)
 {
 	C_PortableTime last_login_time = {0}, tmp_time = {0};
 	UDWord access, priv, ser_idx, node_idx;
@@ -2522,6 +2522,7 @@ static int NA_get_username_password(const char *username, char *plain_pass)
 	int am_data_res_len;
 	int ret = -1;
 	unsigned int handle;
+	*user_pl = -1;
 	char remote_addr[300] = "ans.dynamas.com.tw:17862";
 
 	handle=NA_CreateObject(0);
@@ -2532,6 +2533,7 @@ static int NA_get_username_password(const char *username, char *plain_pass)
 			struct user_info ui;
 			get_user_info(&ui, (char*)am_data);
 			strcpy(plain_pass, ui.PlainPassword);
+			*user_pl = ui.UserPL;
 			ret = 0;
 		    DEBUG_TRACE(("%s", (char*)am_data));
 		}
@@ -2567,11 +2569,14 @@ static int authorize(struct mg_connection *conn, struct file *filep) {
       return check_password(conn->request_info.request_method, ha1, ah.uri,
                             ah.nonce, ah.nc, ah.cnonce, ah.qop, ah.response);
   }
-
-  if(NA_get_username_password(ah.user, f_pass) == 0)
+  int user_pl;
+  if(NA_get_username_password(ah.user, f_pass, &user_pl) == 0)
   {
       DEBUG_TRACE(("auth (%s, %s)", ah.user, f_pass));
-	  strcpy(conn->curr_group, "doctor");
+	  if(user_pl == 1)
+	    strcpy(conn->curr_group, "unit");
+	  else
+	    strcpy(conn->curr_group, "doctor");
 	  mg_md5(ha1, ah.user, ":", conn->ctx->config[AUTHENTICATION_DOMAIN], ":", f_pass, NULL);
       return check_password(conn->request_info.request_method, ha1, ah.uri,
                             ah.nonce, ah.nc, ah.cnonce, ah.qop, ah.response);
