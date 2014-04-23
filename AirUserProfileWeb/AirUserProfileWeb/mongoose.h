@@ -29,6 +29,17 @@ struct mg_context;     // Handle for the HTTP service itself
 struct mg_connection;  // Handle for the individual connection
 
 
+// NOTE(lsm): this enum shoulds be in sync with the config_options below.
+typedef enum {
+  CGI_EXTENSIONS, CGI_ENVIRONMENT, PUT_DELETE_PASSWORDS_FILE, CGI_INTERPRETER,
+  PROTECT_URI, AUTHENTICATION_DOMAIN, SSI_EXTENSIONS, THROTTLE,
+  ACCESS_LOG_FILE, ENABLE_DIRECTORY_LISTING, ERROR_LOG_FILE,
+  GLOBAL_PASSWORDS_FILE, INDEX_FILES, ENABLE_KEEP_ALIVE, ACCESS_CONTROL_LIST,
+  EXTRA_MIME_TYPES, LISTENING_PORTS, DOCUMENT_ROOT, SSL_CERTIFICATE,
+  NUM_THREADS, RUN_AS_USER, REWRITE, HIDE_FILES, REQUEST_TIMEOUT, MAX_UPLOAD_PICTURE_SIZE,
+  NUM_OPTIONS
+} ENUM_CONFIG_OPTIONS;
+
 // This structure contains information about the HTTP request.
 struct mg_request_info {
   const char *request_method; // "GET", "POST", etc
@@ -48,7 +59,6 @@ struct mg_request_info {
     const char *value;        // HTTP header value
   } http_headers[64];         // Maximum 64 headers
 };
-
 
 // This structure needs to be passed to mg_start(), to let mongoose know
 // which callbacks to invoke.
@@ -384,6 +394,8 @@ int mg_url_decode(const char *src, int src_len, char *dst,
 //   char buf[33];
 //   mg_md5(buf, "aa", "bb", NULL);
 char *mg_md5(char buf[33], ...);
+
+const char *mg_conn_get_config(struct mg_connection *conn, ENUM_CONFIG_OPTIONS id);
 
 
 #ifdef __cplusplus

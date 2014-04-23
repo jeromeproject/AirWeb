@@ -457,17 +457,6 @@ struct socket {
   unsigned ssl_redir:1; // Is port supposed to redirect everything to SSL port
 };
 
-// NOTE(lsm): this enum shoulds be in sync with the config_options below.
-enum {
-  CGI_EXTENSIONS, CGI_ENVIRONMENT, PUT_DELETE_PASSWORDS_FILE, CGI_INTERPRETER,
-  PROTECT_URI, AUTHENTICATION_DOMAIN, SSI_EXTENSIONS, THROTTLE,
-  ACCESS_LOG_FILE, ENABLE_DIRECTORY_LISTING, ERROR_LOG_FILE,
-  GLOBAL_PASSWORDS_FILE, INDEX_FILES, ENABLE_KEEP_ALIVE, ACCESS_CONTROL_LIST,
-  EXTRA_MIME_TYPES, LISTENING_PORTS, DOCUMENT_ROOT, SSL_CERTIFICATE,
-  NUM_THREADS, RUN_AS_USER, REWRITE, HIDE_FILES, REQUEST_TIMEOUT,
-  NUM_OPTIONS
-};
-
 static const char *config_options[] = {
   "cgi_pattern", "**.cgi$|**.pl$|**.php$",
   "cgi_environment", NULL,
@@ -494,6 +483,7 @@ static const char *config_options[] = {
   "url_rewrite_patterns", NULL,
   "hide_files_patterns", NULL,
   "request_timeout_ms", "30000",
+  "max_upload_picture_size", "2048",	// unit:kb
   NULL
 };
 
@@ -531,8 +521,6 @@ struct mg_connection {
   int64_t num_bytes_sent;     // Total bytes sent to client
   int64_t content_len;        // Content-Length header value
   int64_t consumed_content;   // How many bytes of content have been read
-  char curr_username[128];
-  char curr_group[128];			// admin or doctor
   char *buf;                  // Buffer for received data
   char *path_info;            // PATH_INFO part of the URL
   int must_close;             // 1 if connection must be closed
@@ -543,6 +531,10 @@ struct mg_connection {
   int throttle;               // Throttling, bytes/sec. <= 0 means no throttle
   time_t last_throttle_time;  // Last time throttled data was sent
   int64_t last_throttle_bytes;// Bytes sent this second
+  // private user data for air web
+  char curr_username[128];
+  char curr_group[128];			// admin or doctor
+  char air_username[128];			// username who is	 modifying
 };
 
 // Directory entry
@@ -4411,8 +4403,10 @@ static uint32_t get_remote_ip(const struct mg_connection *conn) {
 
 int mg_upload(struct mg_connection *conn, const char *destination_dir) {
   const char *content_type_header, *boundary_start;
+  int content_len = 0;
   char buf[MG_BUF_LEN], path[PATH_MAX], fname[1024], boundary[100], *s;
   FILE *fp;
+  int max_file_size = atoi(conn->ctx->config[MAX_UPLOAD_PICTURE_SIZE]) * 1024;
   int bl, n, i, j, headers_len, boundary_len, eof,
       len = 0, num_uploaded_files = 0;
 
@@ -4440,41 +4434,85 @@ int mg_upload(struct mg_connection *conn, const char *destination_dir) {
       boundary[0] == '\0') {
     return num_uploaded_files;
   }
+  if (mg_get_header(conn, "Content-Length") != NULL)
+  {
+	  content_len = atoi(mg_get_header(conn, "Content-Length"));
+  }
+  if(content_len == 0 || content_len > max_file_size + 2048 /* other header length */)
+  {
+	while (mg_read(conn, buf, sizeof(buf)) > 0);
+	return -2;
+  }
 
   boundary_len = strlen(boundary);
   bl = boundary_len + 4;  // \r\n--<boundary>
+  int consumed_bytes = 0;
+	char *pstart = NULL;
+	char *cont_dispos, *cont_dispos_end;
   for (;;) {
     // Pull in headers
     assert(len >= 0 && len <= (int) sizeof(buf));
-    while ((n = mg_read(conn, buf + len, sizeof(buf) - len)) > 0) {
-      len += n;
-    }
-    if ((headers_len = get_request_len(buf, len)) <= 0) {
-      break;
-    }
+	pstart = NULL;
+	while (pstart == NULL) {
+		n = mg_read(conn, buf + len, sizeof(buf) - len);
+		if(n < 0)
+			return num_uploaded_files;
+		if(n > 0)
+		{
+			consumed_bytes += n;
+			len += n;
+			pstart = strstr(buf, boundary);
+			if (pstart && (headers_len = get_request_len(pstart, len)) >= 0)
+			{
+				break;
+			}
+		}
+		if(n == 0 && consumed_bytes == conn->content_len)
+		{
+				return num_uploaded_files;
+		}
+		// if(n == 0)
+			// return num_uploaded_files;
+	}
 
     // Fetch file name.
+	//cont_dispos = pstart + headers_len;
+	cont_dispos = strstr(pstart, "Content-Disposition");
+	if(cont_dispos == NULL)
+		break;
+	cont_dispos_end = strstr(cont_dispos, "\r\n");
+	if(cont_dispos_end == NULL)
+		break;
+	cont_dispos_end[0] = 0;
     fname[0] = '\0';
-    for (i = j = 0; i < headers_len; i++) {
-      if (buf[i] == '\r' && buf[i + 1] == '\n') {
-        buf[i] = buf[i + 1] = '\0';
-        // TODO(lsm): don't expect filename to be the 3rd field,
-        // parse the header properly instead.
-        sscanf(&buf[j], "Content-Disposition: %*s %*s filename=\"%1023[^\"]",
-               fname);
-        j = i + 2;
-      }
-    }
+	sscanf(cont_dispos, "Content-Disposition: %*s %*s filename=\"%1023[^\"]", fname);
+   if (fname[0] == '\0') {
+	   if(strstr(cont_dispos, "tx_Username"))
+	   {
+/* example of gotting message
+-----------------------------7ddd037101ce
+Content-Disposition: form-data; name="tx_Username"
 
-    // Give up if the headers are not what we expect
-    if (fname[0] == '\0') {
-      break;
+aa
+*/
+			char *value_end = strstr(cont_dispos_end+3, "\r\n");
+			if(value_end == NULL)
+				break;
+			*value_end = 0;
+			sscanf(cont_dispos_end+3, "%s", conn->air_username);
+			headers_len = value_end - pstart + 2;
+	   }
     }
 
     // Move data to the beginning of the buffer
-    assert(len >= headers_len);
-    memmove(buf, &buf[headers_len], len - headers_len);
-    len -= headers_len;
+    if(len < headers_len) return -1;
+	len -= (headers_len + (pstart - buf));
+    memmove(buf, &pstart[headers_len], len);
+
+    // Give up if the headers are not what we expect
+    if (fname[0] == '\0') {
+		continue;
+    }
 
     // We open the file with exclusive lock held. This guarantee us
     // there is no other thread can save into the same file simultaneously.
@@ -4486,7 +4524,7 @@ int mg_upload(struct mg_connection *conn, const char *destination_dir) {
     }
 
     // Open file in binary mode. TODO: set an exclusive lock.
-    snprintf(path, sizeof(path), "%s/%s", destination_dir, s);
+    snprintf(path, sizeof(path), "%s/%s_%d_%s", destination_dir, conn->air_username, rand(), s);
     if ((fp = fopen(path, "wb")) == NULL) {
       break;
     }
@@ -4494,6 +4532,7 @@ int mg_upload(struct mg_connection *conn, const char *destination_dir) {
     // Read POST data, write into file until boundary is found.
     eof = n = 0;
     do {
+		consumed_bytes += n;
       len += n;
       for (i = 0; i < len - bl; i++) {
         if (!memcmp(&buf[i], "\r\n--", 4) &&
@@ -5626,4 +5665,21 @@ struct mg_context *mg_start(const struct mg_callbacks *callbacks,
   }
 
   return ctx;
+}
+
+const char *mg_conn_get_config(struct mg_connection *conn, ENUM_CONFIG_OPTIONS id)
+{
+	return conn->ctx->config[id];
+}
+
+void http_upload_files(struct mg_connection *conn, const char *file_name)
+{
+	// netcon -up dynamas.com.tw:17862 C:\Netcon\ar_icon.jpg D:\ServerData\NameServer\UserProfiles\unclej\Resources\ar_icon.jpg
+	char cmd[2048];
+	if( strcmp(conn->air_username, "") != 0 )
+	{
+		sprintf(cmd, "netcon -up dynamas.com.tw:17862 \"%s\" \"D:\\ServerData\\NameServer\\UserProfiles\\%s\\Resources\\ar_icon.jpg\"", file_name, conn->air_username);
+		system(cmd);
+	}
+	unlink(file_name);
 }
