@@ -27,6 +27,22 @@ function get_user_list(cb, QueryString /*usless*/, UserList)
   });
 }
 
+function get_friend_list(cb, QueryString, UserList)
+{
+	// this function is valid for Doctor group
+	var friend_list = "";
+	var oUser = ajax_get_user_profile_async(QueryString);
+	var ent = oUser.FriendList.split(" ");
+	for(var i = 0; i < ent.length; i++)
+	{
+		if(friend_list == "")
+			friend_list += ent[i];
+		else
+			friend_list += "\n" + ent[i];
+	}
+	cb("ok", friend_list);
+}
+
 function ajax_get_login_info(cb, LoginUser, Group)
 {
   var url_string_group = 'User.exe?Action=info' + '&time=' + $.now();
@@ -63,11 +79,23 @@ function ajax_get_login_info(cb, LoginUser, Group)
 
 function strip_quote(str)
 {
+	if(!str)
+		return "";
+	str = str.trim();
 	if(str[0] == '"' && str[str.length - 1] == '"')
 	{
 		//alert(str);
 		//str[0] = str[str.length] = '';
 		return str.substring(1, str.length-1);
+	}
+	if(str[0] == '"')
+	{
+		return str.substring(1, str.length);
+	}
+	if(str[str.length - 1] == '"')
+	{
+		//str[0] = str[str.length] = '';
+		return str.substring(0, str.length-1);
 	}
 	return str;
 }
@@ -227,13 +255,40 @@ function ajax_update_user_profile(cb, who, PlainPassword, PlainPasswordConfirm, 
 			if(cb) cb(false, url_string + ' request failed');
 		},
 		success: function(response) {
+			//alert(response);
 			if(response.toLowerCase().indexOf("ok") == -1)
 			{
-				//alert(response);
 				if(cb) cb(false, response);
 			}
 			else
-				if(cb) cb(true, null);
+				if(cb) cb(true, response);
+		}
+	});
+}
+
+function ajax_update_user_friendlist(cb, who, FriendList)
+{
+	var cFriendList = encodeURIComponent('"' + FriendList + '"');
+	var url_string = 'User.exe?Action=update&username=' + who
+		+ "&FriendList=" + cFriendList
+		+ '&time=' + $.now()
+		;
+	//url_string = encodeURIComponent(url_string);
+	//alert(url_string);
+	$.ajax({
+		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
+		error: function(xhr) {
+			if(cb) cb(false, url_string + ' request failed');
+		},
+		success: function(response) {
+			//alert(response);
+			if(response.toLowerCase().indexOf("ok") == -1)
+			{
+				if(cb) cb(false, response);
+			}
+			else
+				if(cb) cb(true, response);
 		}
 	});
 }
@@ -295,6 +350,108 @@ function ajax_create_user_profile(cb, UserPL, QueryString, Username, PlainPasswo
 			}
 			else
 				if(cb) cb(true, null);
+		}
+	});
+}
+
+function ajax_get_friendlist(cb, who)
+{
+//http://127.0.0.1:8080/User.exe?action=fdlist&QueryString=PersonTest
+  var url_string = 'User.exe?Action=fdlist&QueryString=' + who + '&time=' + $.now();
+  $.ajax({
+	url: url_string,
+	contentType: 'text/plain;charset=utf-8',
+	error: function(xhr) {
+		alert(url_string + ' request failed');
+		if(cb)
+			cb(false, "");
+	},
+	success: function(response) {
+		//alert(response);
+		if(cb)
+			cb(true, response);
+	}
+  });	
+}
+
+//GET /User.exe?Action=fdadd&username=_D_test1&Nickname=%22H7878%20abcde%22&QueryString=person1&time=1401285399800 HTTP/1.1
+function ajax_create_friend_profile(cb, DeviceID, Nickname, QueryString)
+{
+	var cNickname = encodeURIComponent('"' + Nickname + '"');
+	var url_string = 'User.exe?Action=fdadd&username=' + DeviceID
+		+ "&Nickname=" + cNickname
+		+ "&QueryString=" + QueryString
+		+ '&time=' + $.now()
+		;
+	//url_string = encodeURIComponent(url_string);
+	alert(url_string);
+	$.ajax({
+		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
+		error: function(xhr) {
+			if(cb) cb(false, url_string + ' request failed');
+		},
+		success: function(response) {
+			//alert(response);
+			if(response.toLowerCase().indexOf("ok") == -1)
+			{
+				//alert(response);
+				if(cb) cb(false, response);
+			}
+			else
+				if(cb) cb(true, null);
+		}
+	});
+}
+
+//http://127.0.0.1:8080/User.exe?action=fddel&Username=_D_person2
+ function ajax_delete_friend_profile(cb, who)
+ {
+	//who = encodeURIComponent(who);
+	var url_string = 'User.exe?Action=fddel&Username=' + who + '&time=' + $.now();
+	//alert(url_string);
+	$.ajax({
+		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
+		error: function(xhr) {
+			if(cb) cb(false, url_string + ' request failed');
+		},
+		success: function(response) {
+			//alert(response);	
+			if(response.toLowerCase().indexOf("ok") == -1)
+			{
+				if(cb) cb(false, response);
+			}
+			else
+				if(cb) cb(true, null);
+		}
+	});
+}
+
+ function ajax_update_friend_profile(cb, who, Nickname)
+{
+//http://127.0.0.1:8080/User.exe?action=fdlist&QueryString=PersonTest
+ 	var cNickname = encodeURIComponent('\"' + Nickname + '\"');
+	var url_string = 'User.exe?Action=update&username=' + who		// should use fdupdate
+		+ "&Nickname=" + cNickname
+		+ '&time=' + $.now()
+		;
+	//url_string = encodeURIComponent(url_string);
+	//alert(url_string);
+	$.ajax({
+		url: url_string,
+		contentType: 'text/plain;charset=utf-8',
+		error: function(xhr) {
+			if(cb) cb(false, url_string + ' request failed');
+		},
+		success: function(response) {
+			//alert(response);
+			if(response.toLowerCase().indexOf("ok") == -1)
+			{
+				if(cb) cb(false, response);
+			}
+			else
+				if(cb) cb(true, response);
 		}
 	});
 }

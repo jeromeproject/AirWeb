@@ -1,0 +1,346 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<html>
+<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1"> 
+		<link rel="stylesheet" href="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.css" />
+		<link rel="stylesheet" href="css/main.css" />
+		<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+		<script src="http://code.jquery.com/mobile/1.2.1/jquery.mobile-1.2.1.min.js"></script>
+		<script type="text/javascript" src="js/user_profile.js"></script>
+		<script type="text/javascript">
+		var unit = "";
+		var param_friend_list = "";
+		var friend_cnt = 0;
+		var friend_name = new Array();
+		function updated_friendlist_cb(ret, msg)
+		{
+			if(!ret)
+				alert("Update firend list error: " + msg);
+			history.back();
+		}
+		function get_friendlist_cb(ret, msg)
+		{
+			//alert("frinedlist_cb: " + msg);
+			//$('#Apply').attr("disabled", ret ? false : true);
+			//$('#Apply').attr("disabled", true);
+			$('#Apply').button(ret ? 'enable' : 'disable');	//jquery mobile version
+			if(ret)
+			{
+				friend_cnt = 0;
+				if(get_param_from_query_string("group") == "admin" || get_param_from_query_string("group") == "unit" )
+					$('#EditorGroupButtonDiv').show();
+				else
+					$('#EditorGroupButtonDiv').hide();
+				$('#EditorGroupButtonDiv').show();
+				var newRows = "";
+				/*
+				var newRows = "<tr><th>6</th><td><a href=\"http://en.wikipedia.org/wiki/Dr._Strangelove\" data-rel=\"external\">Dr. Strangelove Or How I Learned to Stop Worrying and Love the Bomb</a></td><td>1964</td><td>92%</td><td>74</td></tr><tr><th>7</th><td><a href=\"http://en.wikipedia.org/wiki/The_Graduate\" data-rel=\"external\">The Graduate</a></td><td>1967</td><td>91%</td><td>122</td></tr><tr><th>8</th><td><a href=\"http://en.wikipedia.org/wiki/The_Wizard_of_Oz_(1939_film)\" data-rel=\"external\">The Wizard of Oz</a></td><td>1939</td><td>90%</td><td>72</td></tr><tr><th>9</th><td><a href=\"http://en.wikipedia.org/wiki/Singin%27_in_the_Rain' data-rel=\"external\">Singin\" in the Rain</a></td><td>1952</td><td>89%</td><td>85</td></tr><tr><th>10</th><td class=\"title\"><a href=\"http://en.wikipedia.org/wiki/Inception\" data-rel=\"external\">Inception</a></td><td>2010</td><td>84%</td><td>78</td></tr>";
+				*/
+				var ent = msg.split("\n");
+				var fd = param_friend_list.split(" ");
+				for(i = 0; i < ent.length; ++i)
+				{
+					if(ent[i] == "")
+						break;
+					var item = ent[i].split(" ");
+					if(item.length > 0)
+					{
+						ischecked = false;
+						var friend = {
+							index: friend_cnt,
+							hid: strip_quote(item[1]),
+							name: strip_quote(item[2]),
+							did: strip_quote(item[0])
+						};
+						//alert(friend.hid);
+						for(j = 0; j < fd.length; ++j)
+						{
+							if(friend.did == fd[j])
+								ischecked = true;
+						}
+						if(ischecked)
+							newRows += "<tr><th><input id=fd_sel[] type=checkbox checked></th>";
+						else
+							newRows += "<tr><th><input id=fd_sel[] type=checkbox></th>";
+						newRows += "<td><a onclick='edit_friend_profile(" + friend_cnt + ")' > " + friend.hid + "</a><td>";
+						newRows += "<td>" + friend.name + "<td>";
+						newRows += "<td>" + friend.did + "<td>";
+						newRows += "</tr>";
+						friend_name[friend_cnt] = friend;
+						++friend_cnt;
+					}
+				}
+				//alert(newRows);
+				$( "table#fdtable tbody" ).append( newRows )
+				// Call the refresh method
+				.closest( "table#fdtable" )
+				//.table( "refresh" )
+				// Trigger if the new injected markup contain links or buttons that need to be enhanced
+				.trigger( "create" );
+								
+				$("#ClickAll").click(function() {
+					//var cbxVehicle = new Array();$('input:checkbox:checked[name="vehicle"]').each(function(i) { cbxVehicle[i] = this.value; });
+					$("input[id='fd_sel[]']").each(function() {
+						$(this).prop("checked", true);
+					});
+				});
+				$("#UnclickAll").click(function() {
+					$("input[id='fd_sel[]']").each(function() {
+						$(this).prop("checked", false);
+					});
+				});
+				$("#Apply").click(function() {
+					var i = 0;
+					var friend_list = "";
+					$("input[id='fd_sel[]']").each(function() {
+						if($(this).attr("checked"))
+						{
+							if(friend_list == "")
+								friend_list += friend_name[i].did;
+							else
+								friend_list += " " + friend_name[i].did;
+						}
+						++i;
+					});
+					//alert(friend_list);
+					ajax_update_user_friendlist(updated_friendlist_cb, unit, friend_list);
+				});
+				$("#EditFD").click(function() {
+					var i = 0;
+					var selectedItem = null;
+					$("input[id='fd_sel[]']").each(function() {
+						if($(this).attr("checked"))
+						{
+							++i;
+							selectedItem = $(this);
+						}
+					});
+					if(i == 1)
+					{
+						$('#tb1').hide();
+						$('#tbfd1').show();
+						$('#ApplyFriendDiv').show();
+						$('#CreateFriendDiv').hide();
+					}
+					else if(i > 1)
+					{
+						alert("選超過1個病人");
+					}
+					else if(i == 0)
+					{
+						alert("沒選擇病人");
+					}
+				});
+				$("#CreateFD").click(function() {
+					$('#tx_HID').val('');
+					$('#tx_Username').val('');
+					$('#tx_DeviceID').val('');
+					$('#tb1').hide();
+					$('#tbfd1').show();
+					$('#ApplyFriendDiv').hide();
+					$('#CreateFriendDiv').show();
+					//location.reload(true);
+				});
+				$("#DeleteFD").click(function() {
+					var i = 0;
+					if(friend_cnt <= 0)
+						return;
+					$("input[id='fd_sel[]']").each(function() {
+						if($(this).attr("checked"))
+						{
+							alert("delete " + friend_name[i].did);
+							ajax_delete_friend_profile(null, friend_name[i].did);
+						}
+						++i;
+					});
+					location.reload(true);
+				});
+				$("#GoBack").click(function() {
+					history.back();
+				});
+			}
+			else
+			{
+				$('#tb1').hide();
+				alert("get friend list failed");
+			}
+		}
+		function edit_friend_profile(idx)
+		{
+			if(idx < 0 || idx > friend_cnt)
+			{
+				alert("沒選擇正確病人資料,請重新整理網頁");
+				return 0;
+			}
+			//alert("edit" + friend_name[idx].did);
+			$('#tx_HID').val(friend_name[idx].hid);
+			$('#tx_Username').val(friend_name[idx].name);
+			$('#tx_DeviceID').val(friend_name[idx].did);
+			
+			$('#tb1').hide();
+			$('#tbfd1').show();
+			$('#ApplyFriendDiv').show();
+			$('#CreateFriendDiv').hide();
+		}
+		$(document).ready(function() {
+			param_friend_list = get_param_from_query_string("friend_list");
+			unit = get_param_from_query_string("unit");
+			if(unit)
+				ajax_get_friendlist(get_friendlist_cb, unit);
+			else
+				alert("no unit");
+			
+		});
+		
+		</script>
+
+<title>客戶資料設定</title>
+</head>
+<body>
+  <table data-role="table" id="tb1" class="ui-responsive table-stroke">
+	<thead>
+		<tr>
+      <th>客戶資料設定</th>
+    </tr>
+	</thead>
+	<tbody>
+    <tr>
+		<th>
+		<table data-role="table" id="fdtable" class="ui-responsive table-stroke">
+		<thead>
+			<tr>
+				<th>Mark</th>
+				<th>病歷號碼</th>
+				<th data-priority="2">姓名</th>
+				<th data-priority="1"><abbr title="Device ID">設備號碼</abbr></th>
+				<th>科別</th>
+				<th>通訊紀錄</th>
+				<th>護理人員</th>
+			</tr>
+		</thead>
+		<tbody>
+		</tbody>
+		</table>
+		</th>
+	<tr>
+		<th>
+		<table data-role="table" id="tb2" class="ui-responsive table-stroke">
+			<tbody>
+			<tr>
+			  <th class="tb2LM">
+				<div id=SelAllDiv><input value="Select All" id="ClickAll" type="button"></div>
+				<div id=SelNoneDiv><input value="Select None" id="UnclickAll" type="button"></div>
+				<div id=ApplyDiv><input value="Apply" id="Apply" type="button"></div></th>
+			  <th class="tb2LM">
+				<div id=EditorGroupButtonDiv style="display:none">
+				<div id=CreateFDDiv><input value="Create" id="CreateFD" type="button"></div>
+				<!--<div id=EditFDDiv><input value="Edit" id="EditFD" type="button"></div>-->
+				<div id=DeleteFDDiv><input value="Delete" id="DeleteFD" type="button"></div></th>
+				</div>
+			  <th class="tb2LM">
+				<div id=PrintDiv><input value="Print" id="Print" type="button" onclick="print();"></div>
+				<div id=PrintDiv><input value="Back" id="GoBack" type="button"></div></th>
+			</tr>
+			</tbody>
+		  </table> <!-- tb2 -->
+	  </th>	
+	</tr>
+	</tbody>
+  </table> <!-- tb1 -->
+
+		<script type="text/javascript">
+		function apply_friend_page()
+		{
+		}
+		function create_friend_cb(ret, msg)
+		{
+			location.reload(true);
+		}
+		function create_friend_page()
+		{
+			if(unit == "")
+			{
+				alert("cant get unit name");
+				return;
+			}
+			if($('#tx_DeviceID').val().indexOf("_D_") != 0)
+			{
+				alert("Device ID is not started with _D_");
+				return;
+			}
+
+			if($('#tx_HID').val() == "")
+			{
+				alert("病歷編號沒有設定");
+				return;
+			}
+			
+			if($('#tx_Username').val() == "")
+			{
+				alert("姓名編號沒有設定");
+				return;
+			}
+		
+			var nickname = $('#tx_HID').val() + " " + $('#tx_Username').val();
+			//alert("create device id=" + $('#tx_DeviceID').val() + " nickname=" + nickname + ", unit=" + unit);
+			ajax_create_friend_profile(create_friend_cb, $('#tx_DeviceID').val(), nickname, unit);
+		}
+  		function exit_friend_page()
+		{
+			//$('#tb1').show();
+			//$('#tbfd1').hide();
+			location.reload(true);
+		}
+		function update_friend_cb(ret, msg)
+		{
+			location.reload(true);
+		}
+		$("#ApplyFriend").click(function() {
+			var nickname = $('#tx_HID').val() + " " + $('#tx_Username').val();
+			ajax_update_friend_profile(update_friend_cb, $('#tx_DeviceID').val(), nickname);
+		});
+		</script>
+  <table data-role="table" id="tbfd1" class="ui-responsive table-stroke" style="display:none">
+	<thead>
+		<tr>
+      <th>客戶設定</th>
+    </tr>
+	</thead>
+	<tbody>
+    <tr>
+      <th class="tb1NM">病歷號碼</th>
+      <th class="tb1NM"><input maxlength="30" size="30" id="tx_HID" type="text"><br></th>
+    </tr>
+    <tr>
+      <th class="tb1NAME">姓名</th>
+      <th class="tb1NAME"><input maxlength="30" size="30" id="tx_Username" type="text"><br></th>
+    </tr>
+    <tr>
+      <th class="tb1ID">設備號碼</th>
+      <th class="tb1ID"><input maxlength="30" size="30" id="tx_DeviceID" type="text"><br></th>
+    </tr>
+    <tr>
+      <th class="tb1DEPT">科別</th>
+      <th class="tb1DEPT"><input maxlength="30" size="30" id="tx_Dept" type="text"><br></th>
+    </tr>
+    <tr>
+      <th class="tb1NUM">電話</th>
+      <th class="tb1NUM"><input maxlength="30" size="30" id="tx_PhoneNumber" type="text"><br></th>
+    </tr>
+    <tr>
+      <th class="tb1NUR">護理人員</th>
+      <th class="tb1NUR"><input maxlength="30" size="30" id="tx_Nurse" type="text"><br></th>
+    </tr>
+    <tr>
+      <th>
+		<div id=ApplyFriendDiv style="display:none"><input value="Apply" id="ApplyFriend" type="button" onclick="apply_friend_page();"></div>
+		<div id=CreateFriendDiv style="display:none"><input value="Create" id="CreateFriend" type="button" onclick="create_friend_page();"></div>
+		<div id=ExitFriendDiv><input value="Exit" id="ExitFriend" type="button" onclick="exit_friend_page();"></div>
+		</th>
+    </tr>
+	</tbody>
+  </table> <!-- tbfd1 -->
+</body>
+</html>

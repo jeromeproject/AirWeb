@@ -126,6 +126,7 @@ enum ExtendedCommandType {
       //         Data1=server index, Data2=node index, Data3=privilege level
       // 說明：當使用者不存在或密碼錯誤時傳回：false
   Ex_CommunityQueryUser,
+  //  Ex_CommunityGetUserProfile
       // text_info_1=user name
       // 傳回值：Result=true/false
       //         Data1=access handle, Data2=privilege level, Data3=server index, Data4=node index
@@ -154,6 +155,31 @@ enum ExtendedCommandType {
       // 傳回值：Result=true
       //         Message=user name list (Message.Type1=AM_Message, Message.DataPtr1=user name list)
       // 說明：傳回根據查詢字串過濾過後的使用者列表（每個使用者名稱使用'\n'隔開）
+  Ex_CommunityQueryUserInfo,
+      // text_info_1=user/device name
+      // 傳回值：Result=true/false
+      //         Message=user information (Message.Type1=AM_Message, Message.DataPtr1=user information text)
+      // 說明：當使用者不存在時傳回：false
+
+  Ex_GetDeviceInitialSetting,
+      // text_info_1=device id
+      // 傳回值：Result=true/false
+      //         Message=setting data (Message.Type1=AM_Message, Message.DataPtr1=ini setting text)
+  Ex_SetDeviceInitialSetting,
+      // text_info_1=device id
+      // text_info_2=setting data
+      // 傳回值：Result=true/false
+
+  Ex_CommunityListDevice,
+      // text_info_1=query string
+      // 傳回值：Result=true
+      //         Message=device name list (Message.Type1=AM_Message, Message.DataPtr1=device name list)
+      // 說明：傳回根據查詢字串過濾過後的裝置列表（每個裝置名稱使用'\n'隔開）
+  Ex_CommunityRemoveDeviceRelationship,
+      // text_info_1=device id
+      // 傳回值：Result=true
+      // 說明：本功能會刪除所有使用者好友列表裡面包含此裝置的關連資料內容
+
 
   Ex_Unknown=10000
 };
@@ -184,6 +210,101 @@ enum AdvMessageType {
 
 #define NA_CommunityListUser(handle, req_time, query_string, am_type, am_data, am_data_len,am_data_res_len) NA_ExtendedCommand(handle, Ex_CommunityListUser, 0, 0, 0, req_time, query_string, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0, am_type, 0,0,0,am_data,0,am_data_len,0,am_data_res_len,0)
 
+//
+// friend list(device operation)
+//
+
+#define NA_CommunityListDevice(handle, req_time, query_string, am_type, am_data, am_data_len,am_data_res_len) NA_ExtendedCommand(handle, Ex_CommunityListDevice, 0, 0, 0, req_time, query_string, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0, am_type, 0,0,0,am_data,0,am_data_len,0,am_data_res_len,0)
+
+#define NA_CommunityQueryDevice(handle, req_time, device, am_type, am_data, am_data_len, am_data_res_len) NA_CommunityQueryUser(handle, req_time, device, NULL, NULL, NULL, NULL, NULL, am_type, am_data, am_data_len, am_data_res_len)
+
+// device initial settting: NameServerAddress=rms_0.dynamas.com.tw:17861
+#define NA_CommunityCreateDevice(handle, req_time, device, init_setting) NA_CommunityCreateUser(handle, req_time, device, "1234") && \
+		NA_ExtendedCommand(handle, Ex_SetDeviceInitialSetting, 0, 0, 0, req_time, device, init_setting, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
+#define NA_CommunityDeleteDevice(handle, req_time, device) \
+	 NA_ExtendedCommand(handle, Ex_CommunityDeleteUser, 0, 0, 0, req_time, device, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0) && \
+	 NA_ExtendedCommand(handle, Ex_CommunityRemoveDeviceRelationship, 0, 0, 0, req_time, device, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0,0,0,0,0,0,0,0,0,0,0,0)
+
+#define NA_CommunityModifyDevice(handle, req_time, device, profile, len_profile)  NA_CommunityModifyUser(handle, req_time, device, profile, len_profile)
+
+
+#define NA_SysReboot(handle) NA_SystemCommand(handle, Sys_Reboot, 0, 0, 0)
+#define NA_SysGetNodeCount(handle) NA_SystemCommand(handle, Sys_GetNodeCount, 0, 0, 0)
+
+enum SettingType {
+  ST_DVR_System=0,    // DVR主機系統設定
+  ST_DVR_Channel,    // DVR主機視訊通道設定值，type2=Channel index
+  ST_RMS_System,    // 未實作
+  ST_RMS_Node,    // RMS伺服器節點設定，type2=Node index
+  ST_RMS_Channel,    // RMS伺服器影像通道連結設定，type2=Channel index
+  ST_DVR_System_ViaServer,    // type2=Node index
+  ST_DVR_Channel_ViaServer,    // type2=Channel index (numbered according to server)
+  ST_DVR_Storage,    // DVR主機儲存路徑等設定值（RMS伺服器同樣也有相同設定）
+  ST_DVR_Storage_ViaServer,    // type2=Node index
+  ST_LANSetting,    // type2: 0=區域網路等設定
+  ST_Debug_SystemInfo=100,
+      // 傳回文字形式的系統資訊（Debug用途）
+      // type2= 0: video server information, 1: frame work information,
+      //        2: network status, 3: node connection status(RMS)
+  ST_SettingUnknown=10000
+};
+
+//bool NA_GetTextSetting( unsigned int handle, int type1, int type2, UDWord data1, UDWord data2, char *setting_buf, int setting_buf_size );
+#define NA_GetNodeTextSetting(handle, node_num, setting_buf, setting_buf_size) NA_GetTextSetting(handle, ST_RMS_Node, node_num, 0, 0, setting_buf, setting_buf_size)
+// bool NA_SetTextSetting( unsigned int handle, int type1, int type2, UDWord data1, UDWord data2, const char *setting_buf );
+/*
+handle: 介面程式物件的handle值
+type1: 指定的設定值型態
+type2、data1、data2: 其他可有可無的的選項參數
+setting_buf: 所提供文字設定值資料的緩衝區位址
+*/
+#define NA_SetNodeTextSetting(handle, node_num, setting_buf) NA_SetTextSetting(handle, ST_RMS_Node, node_num, 0, 0, setting_buf)
+
+/*
+ComputerName=RMServer
+	ComputerDesc=
+EnableVideoLossAlarm=0
+EnablePureMotionDetection=0
+ConservativeNU=1
+SM_BaseSendLifeTime=180
+rts_addr_0=localhost:17990
+rts_addr_1=
+rts_addr_2=
+rts_addr_3=
+network_port_number=17861
+OptimizeJPEGEncode=0
+MPEG4EncodeComplexity=2
+RecordMPEG4KFInterval=45
+NetworkMPEG4KFInterval=60
+HD_AutoDeinterlace=0
+EnableNSRegister=0
+NameServerAddress=
+*/
+#define NA_GetDVRTextSetting(handel, setting_buf, setting_buf_size) NA_GetTextSetting(handle, ST_DVR_System, 0, 0, 0, setting_buf, setting_buf_size)
+
+/*
+netcon -gs dynamas.com.tw:17861 4 17 0 0
+CS_17_IsEnable=0
+CS_17_StorageSpace=20971520
+CS_17_StorageTime=0
+CS_17_AdvancedMode=0
+CS_17_ReqFormat=6
+CS_17_Quality=75
+CS_17_KFInterval=60
+CS_17_FR1=300
+CS_17_FR2=300
+CS_17_FR3=100
+CS_17_FR4=400
+CS_17_FR5=10
+CS_17_RequestAudioStream=0
+
+2014/5/18 default value
+CS_0_IsEnable=1  ---------> 是否 "啟動（視訊）監控"
+CS_0_RequestAudioStream=1  ------> 是否 "要求音訊串流"
+*/
+#define NA_SetChannelTextSetting(handle, ch_num, setting_buf) NA_SetTextSetting(handle, ST_RMS_Channel, ch_num, 0, 0, setting_buf)
+
 
 /*
 PlainPassword=test
@@ -204,7 +325,27 @@ struct user_info {
 	char BlackList[14000];
 	int ServerIndex;
 	int NodeIndex;
-	char QueryString[64];
+	char QueryString[5000];
+};
+
+struct rms_node_info
+{
+	int index;
+	int IsEnable;	// 1
+	int TargetType;	// 0
+	int SubTargetType;	//10000
+	char IPAddress[128];		//_D_1C7B21594E84
+	int PortNumber;		//17860
+	int Lookup;			// 0
+	int WaitForConnect;	//1
+	char UserName[128];		//Admin
+	char Password[128];
+	int TrackMessage;	//1
+	int TrackEvent;	//1
+	int TrackGPS;	//1
+	int AutoConnect;	//1
+	int AutoAdjustTime;	//0
+	int AutoImageRecovery;	//0
 };
 
 #define MAX_USER_PROFILE_LEN sizeof(struct user_info)

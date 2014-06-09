@@ -10,6 +10,7 @@
 		<script type="text/javascript" src="js/user_profile.js"></script>
 		
 		<script type="text/javascript">
+		var friend_list = "";	//cache current friend_list
 		var show_unit_string = "Unit";	//1
 		var show_doctor_string = "Doctor"; //2
 		function get_profile_cb(ret, msg, user_pl)
@@ -29,7 +30,6 @@
 					$('#UserLevelDiv').text(show_unit_string);
 				else
 					$('#UserLevelDiv').text(show_doctor_string);
-
 			}
 			else
 			{
@@ -37,12 +37,24 @@
 				if(get_param_from_query_string("username"))
 					$('#Msg').text(msg);
 			}
+			friend_list = $('#tx_FriendList').val();
+			$('#pic_upload_iframe').attr('src', 'upload.html?username=' + get_param_from_query_string("username") + '&time=' + $.now());
 		}
       
 		function apply_profile_cb(ret, msg)
 		{
 			if(ret)
+			{
+				var n = msg.indexOf("showtxt:");
+				if(n > 0)
+					alert(msg.slice(n+8,-1));
+				if(friend_list != $('#tx_FriendList').val() && parent)
+				{
+					//alert("test");
+					parent.update_user_list();
+				}
 				location.reload(true);
+			}
 			else
 			{
 				alert(msg);
@@ -65,7 +77,22 @@
 				alert(msg);
 			}
 		}
-
+		
+		function get_dup_item(str)
+		{
+			var tok = str.split(" ");
+			var i, j;
+			for (i = 0; i < tok.length; i++)
+			{
+				for (j = i + 1; j < tok.length; j++)
+				{
+					if(tok[i] == tok[j])
+						return tok[i];
+				}
+			}
+			return null;
+		}
+		
 		function apply()
 		{
 			if($('#tx_PlainPassword').val() != $('#tx_PlainPasswordConfirm').val())
@@ -73,6 +100,12 @@
 				alert("Password is not same");
 				return;
 			}
+			if( (dup_id = get_dup_item($('#tx_FriendList').val())) != null )
+			{
+				alert("Friend list has duplicated item: " + dup_id);
+				return;
+			}
+			
 			ajax_update_user_profile(apply_profile_cb, get_param_from_query_string("username"), "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
 		}
 		
@@ -115,7 +148,6 @@
 			else
 				alert(msg);
 		}
-
 		function create_user()
 		{
 			if($('#tx_PlainPassword').val() != $('#tx_PlainPasswordConfirm').val())
@@ -168,14 +200,45 @@
 				$('#tx_Username').hide();
 				var username = get_param_from_query_string("username");
 				if(username)
+				{
 					ajax_get_user_profile(get_profile_cb, username, "tx_PlainPassword", "tx_PlainPasswordConfirm", "tx_Nickname", "tx_Comment", "tx_FriendList", "tx_BlackList");
+					$('#tx_Username_1').val(username);
+				}
 			}
+			$("#AddFriend").click(function() {
+				var x = get_param_from_query_string("username");
+				if(!x)
+					x = $('#tx_Username').val()
+				window.location.href = "UpdateFriendList.html?unit="+x+"&friend_list=" + $("#tx_FriendList").val();
+			});
 		});
-
+		/* usless
+        new AjaxUpload('UploadIconBtn', {
+            action: 'UploadPic.exe?tx_Username="' + tx_Username.val() + '"',
+            name: 'file',
+            autoSumit:true,
+            onChange:function(file,extension){
+				alert("hi");
+                if(extension != 'jpg' && extension != 'jpeg'){
+                    alert("wrong file extension");
+                    return false;
+                }
+				return true;
+            },
+            onComplete:function(file, response){
+				return true;
+			}
+        });*/
 		</script>
 		<title>User Profile Editor</title>
   </head>
   <body>
+<!--<form enctype="multipart/form-data" action="UploadPic.exe" method="post" data-ajax="false">
+User Picture: 
+<input id="tx_Username_1" type="text" data-role="none"/>
+<input type="file" name="files" multiple data-role="none"/>
+<input type="submit" name="UploadIconBtn" id="UploadIconBtn" value="Upload user picture">
+</form>-->
     <div id="Msg"></div>
     <table id="ProfileTable" border="1" width=100% height=100%>
       <thead>
@@ -212,14 +275,16 @@
         </tr>
         <tr>
           <td>FriendList</td>
-          <td><input size="128" maxlength="2048" id="tx_FriendList" type="text"><br>
+          <td><button id="AddFriend" type="button"><img src="add-friend.jpg" alt="add-friends" height="32" width="32"></button><input size="20" id="tx_FriendList" type="text" readonly><br>
           </td>
         </tr>
-        <tr>
+		<input maxlength="2048" size="128" id="tx_BlackList" type="hidden">
+<!--        <tr>
           <td>BlackList</td>
           <td><input maxlength="2048" size="128" id="tx_BlackList" type="text"><br>
           </td>
         </tr>
+		-->
         <tr>
           <td>
           </td>
@@ -227,6 +292,19 @@
 		  <div id=ApplyDiv><input value="Apply" id="Apply" type="button" onclick="apply();"></div>
 		  <div id=ReloadDiv><input value="Reload" id="Reload" type="button" onclick="reload();"></div>
 		  <div id=DeleteDiv><input value="Delete" id="Delete" type="button" onclick="delete_me();"></div>
+          </td>
+        </tr>
+        <tr>
+          <td>Upload Picture</td>
+          <td>
+			<iframe 
+				id          ="pic_upload_iframe" 
+				frameborder ="0" 
+				scrolling   ="no" 
+				style       ="width:100%;height:100%;"
+				src	= ""
+			>
+			</iframe>
           </td>
         </tr>
       </tbody>

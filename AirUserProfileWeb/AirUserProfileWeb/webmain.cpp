@@ -36,7 +36,7 @@ static int begin_request_handler(struct mg_connection *conn) {
 
 void http_upload_files(struct mg_connection *conn, const char *file_name);
 
-int main(void) {
+int main(int argc, char *argv[]) {
   struct mg_context *ctx = NULL;
   struct mg_callbacks callbacks;
 

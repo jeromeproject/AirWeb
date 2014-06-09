@@ -1,0 +1,20 @@
+<html>
+	<HEAD>
+		<TITLE>AirWeb Logout</TITLE>
+		<meta charset="utf-8" />
+		<script src="http://code.jquery.com/jquery-1.8.3.min.js"></script>
+		<script type="text/javascript" src="js/user_profile.js"></script>
+		<script type="text/javascript">
+		$(document).ready(function() {
+			$('#tx_Username').val(get_param_from_query_string("username"));
+		});
+
+		</script>
+	</HEAD>
+<body>
+<form enctype="multipart/form-data" action="UploadPic.exe" method="post">
+<input id="tx_Username" name="tx_Username" type="hidden" value="">
+<p>File: <input type="file" name="file"></p>
+<p><input type="submit" value="Upload"></p>
+</body>
+</html>
